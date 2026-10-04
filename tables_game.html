@@ -74,19 +74,15 @@
   table.tt-map { border-collapse: collapse; }
   table.tt-map td, table.tt-map th { width: 26px; height: 26px; text-align: center; font-size: 12px; border: 1px solid var(--tt-line); }
   table.tt-map th { background: var(--bg); color: var(--ink); font-weight: 600; }
-  table.tt-map td.tt-improved { outline: 3px solid var(--tt-orange); }
-  /* fluent spark: white with a dark rim so it reads on every stage colour */
-  table.tt-map td.tt-fluent   { background-image: radial-gradient(circle at top right, #fff 0 3.5px, #123 3.6px 4.5px, transparent 4.6px); }
-  /* stage palette (h16, Kath "more colourful") — child map = best-ever, adult grid = current focus.
-     × orange / ? purple / ÷ teal echo the scaffold's warm-cool family; stars sit on deep blues. */
+  .tt-del-list { display: flex; flex-wrap: wrap; gap: 8px; }
+  .tt-del-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; border: 1px solid #c0392b; background: #fff; color: #c0392b; cursor: pointer; font-size: 14px; }
+  /* h18 (Kath): ONE hue — cell colours are computed per level by ttMapShade (tt_panels.js):
+     pale → deep blue = earned rung, darker when fluent. Symbols carry flexibility (· × ? ÷ ★). */
   table.tt-map td { font-weight: 700; font-size: 15px; line-height: 1; }
-  .tt-map-t0 { background: #eef1f4; color: #b0bcc8; }
-  .tt-map-t1 { background: #ffb347; color: #5a2d00; }
-  .tt-map-t2 { background: #b388ff; color: #2a0a5e; }
-  .tt-map-t3 { background: #26c6da; color: #003a40; }
-  .tt-map-t4 { background: #3949ab; color: #e8edf3; font-size: 17px !important; }
-  .tt-map-t5 { background: #1a237e; color: #ffcc33; font-size: 17px !important; }
+  table.tt-map td.tt-map-star, .tt-map-sw.tt-map-star { font-size: 17px; }
   .tt-map-key { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 12px; margin-top: 10px; font-size: 13px; color: var(--blue-dark); }
+  .tt-map-ramp { flex-basis: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; }
+  .tt-map-ramp-bar { display: inline-block; width: 140px; height: 12px; border-radius: 6px; border: 1px solid var(--tt-line); }
   .tt-map-key-item { display: inline-flex; align-items: center; gap: 4px; }
   .tt-map-sw { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; border-radius: 5px; font-weight: 700; font-size: 14px; }
   /* adult progress card (h16) — honest current tiers; mirrors the reef's adult summary */
@@ -572,6 +568,10 @@ body.tt-pop-on .tt-back { position:fixed; }
       <label><input type="radio" name="strict" value="mainly" checked> mostly these</label>
       <label><input type="radio" name="strict" value="only"> only these</label>
     </div>
+    <div class="tt-field">
+      <div class="tt-label">Delete a player</div>
+      <div id="ttDelPlayers" class="tt-del-list"></div>
+    </div>
     <button id="ttAdultApply" class="tt-choice" type="button">Done</button>
   </section>
 
@@ -687,7 +687,9 @@ var TT_C = {
   // rung trial machine (h-user): clean fast+correct hits needed at a rung to
   // confirm+promote, and rebuild questions required after an error before the
   // next rung may be trialled. Indexed by rung; harder rungs cost more.
-  PROMOTE_HITS:          [1, 2, 2, 2, 3, 3, 3, 3, 3],
+  // h18 (Kath): missing number is an important skill — R4 (? tiles) 2→3, R7 (typed ?) 3→5
+  // (plus the both-factors gate, tt_bothMissing).
+  PROMOTE_HITS:          [1, 2, 2, 2, 3, 3, 3, 5, 3],
   REINFORCE_AFTER_ERROR: [0, 2, 2, 2, 3, 3, 3, 3, 3],
   MASTERED_MIN_PTR: 2,        // "mastered" phase also needs retention (honesty gate)
   CONSOLIDATING_MIN_RUNG: 4,  // below this, still product-from-tiles (recognition) = acquiring,
@@ -894,6 +896,8 @@ function tt_newEngine(config) {
     reaskQueue: [],            // [{key, dueAtQ, stage}] §7 step 3
     spacedReasks: [],          // [{key, dueAtTs}] §7 step 3c — time-due, released into reaskQueue when due
     probe: null,               // placement machine (below); null = done/not needed
+    tileProbe: null,           // h18: Pop/Pairs TILE placement machine in progress (kind "tile" | "board")
+    tilePlacementDone: false,  // h18: the tile placement has run once — never again (Quiz still runs `probe`)
     reentry: null,             // re-entry probe machine (T11); built on a gap, null = none active
     battery: null,             // active bridge battery {key, kind, stage, flip} (§6; singleton, contiguous)
     bridgeReask: [],           // [{key, dueAtQ}] middle-fail retriggers (§6) — in-flight, dropped at entry
@@ -904,7 +908,8 @@ function tt_newEngine(config) {
     session: null,
     sessionSeq: 0,
     lastSession: null,         // summary of the last CLOSED session (the exit / games-menu map reads it)
-    achBest: {},               // factKey -> best-ever achievement tier (child map; never decreases) — h16
+    achBest: {},               // factKey -> best-ever achievement tier (bestCounts; never decreases) — h16
+    mapBest: {},               // factKey -> {sym, level} best-ever map cell (child map; never decreases) — h18
     eventLog: [],              // capped
     _handlers: [],
     // anomaly gate (SPEC §5; tables_anomaly_design.md) — whole-SESSION quarantine.
@@ -961,6 +966,7 @@ function tt_newFact(a, b, introIdx) {
     reentryPrimed: false,  // T11: a failed re-entry probe boosts selection weight until the ordinary re-ask lands
     // commutativity (design doc §2): per-direction gates on the top keypad rung of each form.
     r6Orders: { ab: false, ba: false },   // × commutativity: product orders confirmed (≤confirm-bar) at R6; both → may climb past R6
+    r7Missing: { a: false, b: false },    // h18: typed missing number — each factor answered as the unknown at R7; both → may climb past R7
     r8Dirs: { a: false, b: false },       // ÷ inverse-completeness: division directions fluent (≤fast-bar) at R8; both → mastered
     lastAskedAtQ: -999,
   };
@@ -1037,10 +1043,13 @@ function tt_factRecentAcc(f) {
 }
 // commutativity gates (design doc §2). Squares (a===b) have one direction → auto-satisfy.
 function tt_bothOrders(f) { return f.a === f.b || (f.r6Orders && f.r6Orders.ab && f.r6Orders.ba); }
+// h18 (Kath): R7 needs EACH factor to have been the missing one (3 × ? = 21 and ? × 7 = 21).
+function tt_bothMissing(f) { return f.a === f.b || !!(f.r7Missing && f.r7Missing.a && f.r7Missing.b); }
 function tt_bothDivDirs(f) { return f.a === f.b ? !!(f.r8Dirs && (f.r8Dirs.a || f.r8Dirs.b)) : !!(f.r8Dirs && f.r8Dirs.a && f.r8Dirs.b); }
 // commutativity §2 (S6): a demotion must re-prove both directions — reset the gate trackers below their rung.
 function tt_resetGatesOnDemote(f) {
   if (f.rung <= 6 && f.r6Orders) f.r6Orders = { ab: false, ba: false };
+  if (f.rung <= 7 && f.r7Missing) f.r7Missing = { a: false, b: false };
   if (f.confirmedRung < 8 && f.r8Dirs) f.r8Dirs = { a: false, b: false };
 }
 function tt_phase(eng, f) {
@@ -1096,6 +1105,11 @@ function tt_describe(eng, f, rung, rng, flags) {
     d.correctAnswer = prod;
   } else if (form === "missingFactor") {
     var hideFirst = rng() < 0.5;
+    // h18: at R7 with one factor already done as the unknown, force the other (close the gate).
+    if (rung === 7 && f.a !== f.b && f.r7Missing) {
+      var want = f.r7Missing.a && !f.r7Missing.b ? f.b : f.r7Missing.b && !f.r7Missing.a ? f.a : null;
+      if (want !== null) hideFirst = (p1 === want);    // the hidden slot's answer is p1 when hideFirst
+    }
     d.presented = { left: hideFirst ? p2 : p1, op: "×", right: prod, missingSlot: hideFirst ? "factor1" : "factor2" };
     d.correctAnswer = hideFirst ? p1 : p2;
   } else { // division
@@ -1192,42 +1206,91 @@ function tt_factDifficulty(f) {
 // child who knows the easy facts of a group but not the harder ones. Easy first
 // within a group, groups easy→hard; stop after PROBE_MAX_MISSES. Keypad product
 // (R6) form so recognition luck can't inflate placement. Seeds per group×tier.
-function tt_newProbeMachine(tablesUpTo) {
+//
+// h18 (Kath): the probe FACTS are drawn from a pool per group × tier, so a child who
+// makes several players can't learn a fixed question sequence. Each pool holds only
+// facts of that group (tt_introGroupOfFact) and tier (tt_factDifficulty) — 2×6 is a
+// HARD fact, so it can't open the easy tier. A group is drawn when first served, with
+// the session rng, and stored in the machine (serialized), so a resumed placement
+// keeps its draw. The ÷ probe is drawn from the leftovers of the pool named in `div`.
+// Absent facts (tablesUpTo < 12) are filtered out before drawing.
+// h18 (Kath): the g0 easy pool also holds gentler facts (2×2, 1×n, 10×10) for younger
+// children. `board` = Pairs' per-tier counts: groups 0–1 only, 3 + 3 each — the hardest group
+// is left to normal play (a whole-board placement can't stop early, so 6×9 faced a beginner).
+var TT_PROBE_POOLS = [
+  { easy: ["2x2", "1x7", "1x9", "10x10", "2x3", "2x4", "2x5", "3x10", "4x10", "4x5"], hard: ["2x7", "2x8", "2x9", "5x7", "5x8", "5x9"],
+    div: ["2x10", "5x10", "5x5", "2x4"], n: { easy: 2, hard: 2 }, board: { easy: 3, hard: 3 } },
+  { easy: ["3x3", "3x4", "4x4"], hard: ["3x6", "3x7", "3x8", "3x9", "4x6", "4x7", "4x8", "4x9"],
+    div: "hard", n: { easy: 2, hard: 2 }, board: { easy: 3, hard: 3 } },
+  { easy: [], hard: ["6x6", "6x7", "6x9", "7x7", "7x9", "9x9"],
+    div: "hard", n: { easy: 0, hard: 4 }, board: { easy: 0, hard: 0 } },
+];
+
+// kind: "keypad" (Quiz: R6 × / R8 ÷) | "tile" (Pop: R3 × / R5 ÷, seeds one rung lower —
+// h18) | "board" (Pairs: a tile machine without ÷ probes, all items shown at once).
+function tt_newProbeMachine(tablesUpTo, kind) {
   // T17 (h-user): each group ends with ONE ÷ probe (a cold R8 keypad ÷ — no recognition luck)
   // to detect a division-strong child. It does NOT count toward the × frontier stop rules; its
   // only job is to license the ÷ back-routing of EASIER groups in tt_probeSeed.
-  var groups = [
-    [ { k: "2x5", t: "easy" }, { k: "4x10", t: "easy" }, { k: "2x7", t: "hard" }, { k: "5x9", t: "hard" }, { k: "2x10", t: "div", div: true } ],
-    [ { k: "3x4", t: "easy" }, { k: "4x4", t: "easy" }, { k: "3x7", t: "hard" }, { k: "4x8", t: "hard" }, { k: "3x8", t: "div", div: true } ],
-    [ { k: "6x6", t: "hard" }, { k: "6x7", t: "hard" }, { k: "7x9", t: "hard" }, { k: "9x9", t: "hard" }, { k: "6x9", t: "div", div: true } ],
-  ];
-  return { groups: groups, gi: 0, ii: 0, misses: 0,
+  return { kind: kind || "keypad", groups: [null, null, null], gi: 0, ii: 0, misses: 0,
     results: [{ easy: [], hard: [], div: [] }, { easy: [], hard: [], div: [] }, { easy: [], hard: [], div: [] }], done: false };
 }
 
-function tt_probeNext(eng, sessionCtx, rng) {
-  var pm = eng.probe;
+// Draw one group's probe items (easy → hard → ÷). `slot` = position within its tier
+// (the cold-run tests address probes by slot, since the fact itself is random).
+function tt_drawProbeGroup(eng, pm, gi, rng) {
+  var pool = TT_PROBE_POOLS[gi], items = [], used = {};
+  function draw(list, count, tier, div) {
+    var avail = list.filter(function (k) { return eng.facts[k] && !used[k]; });
+    for (var s = 0; s < count && avail.length; s++) {
+      var k = avail.splice(Math.floor(rng() * avail.length), 1)[0];
+      used[k] = true;
+      items.push(div ? { k: k, t: "div", div: true, slot: 0 } : { k: k, t: tier, slot: s });
+    }
+  }
+  var n = pm.kind === "board" ? pool.board : pool.n;
+  draw(pool.easy, n.easy, "easy");
+  draw(pool.hard, n.hard, "hard");
+  if (pm.kind !== "board") draw(pool.div === "hard" ? pool.hard : pool.div, 1, "div", true);
+  return items;
+}
+
+function tt_probeNext(eng, sessionCtx, rng, pm) {
+  pm = pm || eng.probe;
   while (pm.gi < pm.groups.length) {
+    if (!pm.groups[pm.gi]) pm.groups[pm.gi] = tt_drawProbeGroup(eng, pm, pm.gi, rng);
     if (pm.ii >= pm.groups[pm.gi].length) { pm.gi++; pm.ii = 0; continue; }
     var item = pm.groups[pm.gi][pm.ii], f = eng.facts[item.k];
     if (!f) { pm.ii++; continue; }   // fact absent in this config → skip
     // T17: ÷ probe = cold R8 keypad division (no scaffold, no recognition luck); × probe = R6 keypad product.
-    var d = tt_describe(eng, f, item.div ? 8 : 6, rng, { ceremonial: true, probe: true });
-    d._probeG = pm.gi; d._probeT = item.t; d._probeDiv = !!item.div;
-    d._why = "placement probe g" + (pm.gi + 1) + " " + item.t;
+    // h18 tile machine: R5 ÷ tiles / R3 × tiles (12 mixed options — right-not-lucky).
+    var tile = pm.kind !== "keypad";
+    var d = tt_describe(eng, f, item.div ? (tile ? 5 : 8) : (tile ? 3 : 6), rng, { ceremonial: true, probe: true });
+    d._probeG = pm.gi; d._probeT = item.t; d._probeDiv = !!item.div; d._probeSlot = item.slot || 0;
+    d._probeTile = tile;
+    d._why = (tile ? "tile " : "") + "placement probe g" + (pm.gi + 1) + " " + item.t;
     return d;
   }
   // exhausted (only reachable if trailing items were skipped) — finalize safely
-  if (eng.probe && !eng.probe.done) {
-    tt_probeSeed(eng); eng.probe.done = true; eng.probe = null;
-    tt_emit(eng, "PLACEMENT_DONE", {});
-  }
+  if (!pm.done) tt_probeFinish(eng, pm);
   return null;
 }
 
+// Seed from the results and retire the machine. The keypad machine (eng.probe) is THE
+// placement; a tile machine (eng.tileProbe) only marks the tile placement done — the
+// keypad placement still runs on the child's first Quiz (h18, Kath), raise-only.
+function tt_probeFinish(eng, pm) {
+  tt_probeSeed(eng, pm);
+  pm.done = true;
+  if (pm.kind === "keypad") { eng.probe = null; tt_emit(eng, "PLACEMENT_DONE", {}); }
+  else { eng.tileProbe = null; eng.tilePlacementDone = true; tt_emit(eng, "TILE_PLACEMENT_DONE", { kind: pm.kind }); }
+}
+
 function tt_probeRecord(eng, d, correct) {
-  var pm = eng.probe;
+  var pm = d._probeTile ? eng.tileProbe : eng.probe;
+  if (!pm || pm.done) return;
   pm.results[d._probeG][d._probeT].push(!!correct);
+  if (pm.kind === "board") return;   // Pairs: the child picks the order — no stop rules; finished by the skin
   if (!correct && !d._probeDiv) pm.misses++;   // T17: a ÷-probe miss is expected for a non-÷ child — never a × frontier signal
   pm.ii++;   // advance past the item just answered
   // Stop rules (h-user priority principle): (a) PROBE_MAX_MISSES within a group
@@ -1242,12 +1305,7 @@ function tt_probeRecord(eng, d, correct) {
     if (groupMiss) finalize = true;                 // frontier group complete → stop
     else { pm.gi++; pm.ii = 0; if (pm.gi >= pm.groups.length) finalize = true; }
   }
-  if (finalize) {
-    tt_probeSeed(eng);
-    pm.done = true;
-    eng.probe = null;
-    tt_emit(eng, "PLACEMENT_DONE", {});
-  }
+  if (finalize) tt_probeFinish(eng, pm);
 }
 
 // A fact belongs to the group of its EASIER factor (h-user): 2×6 is a "2s fact"
@@ -1262,12 +1320,38 @@ function tt_introGroupOfFact(f) {
                              // unreachable for real facts — kept for any future ungrouped table
 }
 
+// Seed one fact at a placement target — RAISE-ONLY (h18, Kath): placement never lowers a
+// fact the child already has (a tile placement or Pop/Pairs play may have got there
+// first). `mine` = this run already seeded the fact, so an equal target may still
+// re-apply its flags (the ÷ routing below refines this run's own × seeding).
+//   rung        target working rung
+//   seedVerify  R3.5 (keypad only): prove × once, unscaffolded, before R4
+//   openBridge  T17 ÷ routing: division already shown
+function tt_seedFact(eng, f, rung, seedVerify, openBridge, mine) {
+  if (f.seen && !(rung > f.rung || (mine && rung === f.rung))) return false;
+  // A raise keeps confirmedRung/curvePtr: what was earned stays earned. seedFloor = where a
+  // failed seed-verify falls back to — R1 for a fresh fact, else the rung it held BEFORE
+  // this placement (so even a failed verify never lowers it).
+  if (!f.seen) { f.confirmedRung = 0; f.curvePtr = 0; f.seedFloor = 1; }   // T10: nothing confirmed/retained yet
+  else if (!mine) f.seedFloor = Math.max(1, f.rung);
+  f.seen = true; f.inFlux = false;              // seeded facts don't count toward WIP
+  f.placed = true;                               // h6: one clean in-play hit confirms the seeded rung (Issue 2a)
+  f.rung = rung; f.seedVerify = !!seedVerify;
+  if (openBridge) f.bridge = "open";
+  return true;
+}
+
 // Seed per group × difficulty tier (h-user): easy-probe results seed the group's
 // easy facts, hard-probe results seed its hard facts — so a child can end up with
 // "easy 2s" solid and "hard 2s" (2×7, 2×8) still to learn.
-function tt_probeSeed(eng) {
-  var pm = eng.probe, tiers = ["easy", "hard"];
+// h18: a TILE machine (Pop/Pairs) seeds one rung lower — strong → R3, partial → R1,
+// ÷ routing → R4 (below split) / easy R4 + hard R3 (split group), no bridge opened and no
+// seed-verify (Kath). Tile answers are recognition among 12, weaker than typed recall.
+function tt_probeSeed(eng, pm) {
+  pm = pm || eng.probe;
+  var tiers = ["easy", "hard"], tile = pm.kind !== "keypad", mine = {};
   for (var g = 0; g < pm.groups.length; g++) {
+    if (!pm.groups[g]) break;                         // never drawn = never reached → frontier
     for (var ti = 0; ti < tiers.length; ti++) {
       var tier = tiers[ti], res = pm.results[g][tier];
       if (!res.length) continue;
@@ -1283,15 +1367,14 @@ function tt_probeSeed(eng) {
         // (where to start asking) but leave confirmedRung/curvePtr at 0, so the fact is
         // PROVISIONAL (rung > confirmedRung → uncoloured on the grid) until the child
         // earns it in play. Only tt_recordAnswer's ordinary evidence raises confirmedRung.
-        f.seen = true; f.inFlux = false;              // seeded facts don't count toward WIP
-        f.confirmedRung = 0; f.curvePtr = 0;           // nothing confirmed/retained yet
-        f.placed = true;                               // h6: one clean in-play hit confirms the seeded rung (Issue 2a)
         // R3.5 (h-user): a placement-ACED fact used to seed straight to R6, which routed
         // the child's best-known facts to LATE, HARD ÷ (they bridged only at R7→R8, skipping
         // the gentle R5 ÷ tiles). Instead enter a seed-verify state: skip the easy × ladder,
         // but prove × with ONE clean unscaffolded product, then land on R4 so the ordinary
         // R4→R5 bridge gives gentle EARLY ÷. A partial pass still starts mid-ladder at R3.
-        if (strong) { f.rung = 4; f.seedVerify = true; } else { f.rung = 3; }
+        var ok = tile ? tt_seedFact(eng, f, strong ? 3 : 1, false, false, false)
+                      : tt_seedFact(eng, f, strong ? 4 : 3, strong, false, false);
+        if (ok) mine[key] = true;
       }
     }
     // priority gate (h-user): a group not FULLY cleared (every fact probed AND all
@@ -1325,13 +1408,17 @@ function tt_probeSeed(eng) {
       if (!df.seen) continue;                                 // only facts placement already seeded
       var gg = tt_introGroupOfFact(df);
       if (gg > routeTop) continue;                            // above the routed range → keep normal placement
-      if (gg < routeTop || tt_factDifficulty(df) === "easy") {
-        df.rung = 5; df.bridge = "open"; df.seedVerify = false;   // below split, or split-group EASY → ÷ tiles now
-      } else {
-        df.rung = 4; df.seedVerify = true;                       // split-group HARD → R3.5 early-÷ on-ramp
-      }
-      df.placed = true;
-      tt_emit(eng, "SEED_DIV_ROUTED", { factKey: df.key, toRung: df.rung, fromDivGroup: maxDivGroup });
+      var low = gg < routeTop || tt_factDifficulty(df) === "easy";   // below split, or split-group EASY
+      var routed = tile
+        ? tt_seedFact(eng, df, low ? 4 : 3, false, false, !!mine[dk])     // tile: one rung lower, ÷ via the bridge
+        // h18 (Kath, option A): a ÷-strong child's easier facts start on R4 MISSING-NUMBER tiles,
+        // not R5 ÷ — missing number is an important skill and routing to R5 skipped it entirely
+        // (sim: ~45% of an ace's ÷ facts never met it). No seed-verify (× already proven by the
+        // routing); the bridge is NOT opened here — it runs normally at R4→R5 and its gate fades
+        // to auto-open after BRIDGE_FADE_TO_AUTO clean passes, so the ace's cost is bounded.
+        : (low ? tt_seedFact(eng, df, 4, false, false, !!mine[dk])        // → ? tiles, then the bridge
+               : tt_seedFact(eng, df, 4, true, false, !!mine[dk]));       // split-group HARD → R3.5 early-÷ on-ramp
+      if (routed) tt_emit(eng, "SEED_DIV_ROUTED", { factKey: df.key, toRung: df.rung, fromDivGroup: maxDivGroup });
     }
   }
 }
@@ -1682,17 +1769,12 @@ function tt_nextQuestion(eng, sessionCtx, rng) {
   // (2) introduction — when WIP has room, band is healthy, and spacing allows.
   // Effective WIP rises with sustained success (bored release valve) and the
   // intro gap tightens while escalated.
-  var acc = tt_rollingAcc(eng);
-  var bandHealthy = acc === null || acc >= eng.child.setpoint - 0.05;
-  var warm = eng.session && eng.session.warmLeft > 0;
   var effWip = tt_effectiveWip(eng);
   if (effWip > (eng._lastWipEff || eng.child.wipCap)) {
     tt_emit(eng, "CHALLENGE_UP", { wip: effWip, index: Math.round(tt_challengeIndex(eng)) });
   }
   eng._lastWipEff = effWip;
-  var introGap = effWip > eng.child.wipCap ? TT_C.BORED_INTRO_GAP : TT_C.INTRO_MIN_GAP_Q;
-  if (!warm && bandHealthy && tt_inFluxCount(eng) < effWip
-      && eng.qCount - eng.lastIntroQ >= introGap) {
+  if (tt_introAllowed(eng, effWip, {})) {
     var nf = tt_nextIntroFact(eng, sessionCtx);
     if (nf) return tt_serveIntro(eng, nf, sessionCtx, rng);
   }
@@ -1703,7 +1785,7 @@ function tt_nextQuestion(eng, sessionCtx, rng) {
   if (!pick) { pick = tt_weightedPick(eng, sessionCtx, rng, 1); relaxUsed = 1; }
   if (!pick) { pick = tt_weightedPick(eng, sessionCtx, rng, 2); relaxUsed = 2; }
   if (!pick) { // pool empty (fresh profile / tiny early pool): introduce if WIP allows
-    if (tt_inFluxCount(eng) < tt_effectiveWip(eng)) {
+    if (tt_introAllowed(eng, tt_effectiveWip(eng), { force: true })) {
       var nf2 = tt_nextIntroFact(eng, sessionCtx);
       if (nf2) return tt_serveIntro(eng, nf2, sessionCtx, rng);
     }
@@ -1742,6 +1824,23 @@ function tt_explainPick(eng, f, sessionCtx, relaxUsed) {
   if (eng.session && eng.session.warmLeft >= 0 && eng.session.asked <= TT_C.SESSION_WARM_QUESTIONS) parts.push("session warm-up");
   if (relaxUsed) parts.push("constraints relaxed L" + relaxUsed);
   return "pool: " + parts.join(", ");
+}
+
+// The introduction gate — ONE copy, shared by the drill and the Class-C games (h18).
+// WIP has room, the accuracy band is healthy, the session's warm-up is over, and the
+// spacing gap since the last intro has passed (tighter while the bored valve is open).
+//   opts.force    pool is empty → WIP room is the only condition (the drill's fallback)
+//   opts.extra    intros already reserved but not yet applied (a Pairs board's batch)
+//   opts.waiveGap the spacing gap is measured per board, not per intro (Pairs)
+function tt_introAllowed(eng, effWip, opts) {
+  opts = opts || {};
+  if (tt_inFluxCount(eng) + (opts.extra || 0) >= effWip) return false;
+  if (opts.force) return true;
+  var acc = tt_rollingAcc(eng);
+  if (acc !== null && acc < eng.child.setpoint - 0.05) return false;   // band unhealthy
+  if (eng.session && eng.session.warmLeft > 0) return false;           // warm-up
+  var introGap = effWip > eng.child.wipCap ? TT_C.BORED_INTRO_GAP : TT_C.INTRO_MIN_GAP_Q;
+  return !!opts.waiveGap || eng.qCount - eng.lastIntroQ >= introGap;
 }
 
 function tt_nextIntroFact(eng, sessionCtx) {
@@ -2031,7 +2130,9 @@ function tt_batteryRecord(eng, d, correct, rtMs, nowTs) {
   var f = eng.facts[d.factKey], bat = eng.battery;
   if (!bat) return;
   var kind = bat.kind, stage = bat.stage, last = kind === "bridge5" ? 4 : 2;
-  if (rtMs > tt_fastBar(eng, d.rung)) bat.clean = false;
+  // h18 (Kath): a Pop pass counts toward the fade like a clean Quiz pass — Pop's reported
+  // rt is a fixed 60 s (speed never counts there), so it is exempt from the speed check.
+  if (!d._tileGame && rtMs > tt_fastBar(eng, d.rung)) bat.clean = false;
 
   if (correct) {
     if (stage < last) { eng.battery.stage++; return; }
@@ -2110,8 +2211,10 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
       f.rung = 4;                                  // → R4 mf tiles; bridge fires at R4→R5
       tt_emit(eng, "SEED_VERIFIED", { factKey: f.key, toRung: 4 });
     } else {
-      f.rung = 1;                                  // placement over-estimated × → full scaffolded ladder
-      tt_emit(eng, "SEED_REJECTED", { factKey: f.key, toRung: 1 });
+      // placement over-estimated × → full scaffolded ladder; h18 raise-only: never below the
+      // rung the fact held before placement raised it (seedFloor; absent on old saves → R1)
+      f.rung = f.seedFloor || 1;
+      tt_emit(eng, "SEED_REJECTED", { factKey: f.key, toRung: f.rung });
       eng.pendingReveal = f.key;                   // §7 reveal, then re-teach from R1
     }
     return;
@@ -2178,6 +2281,7 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
         // it → cannot learn. Completes T13's loosening (fast → 2.5× → accuracy); CONFIRM_BAR retired.
         // commutativity §2: record which product order was confirmed at R6 (the × gate).
         if (d.rung === 6 && d.form === "product") f.r6Orders[(d.presented.left === f.a) ? "ab" : "ba"] = true;
+        if (d.rung === 7 && d.form === "missingFactor") { if (!f.r7Missing) f.r7Missing = { a: false, b: false }; f.r7Missing[d.correctAnswer === f.a ? "a" : "b"] = true; }
         f.rungHits = (f.rungHits || 0) + 1;
         if (f.rungHits === 1 && f.rung > f.confirmedRung && !f.rungProvisional) {
           f.rungProvisional = true;
@@ -2212,6 +2316,8 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
               f.rungHits = need; // clamp at the bridge boundary until division opens
             } else if (f.rung === 6 && !tt_bothOrders(f)) {
               f.rungHits = need; // commutativity §2: hold at R6 until BOTH product orders confirmed (× gate)
+            } else if (f.rung === 7 && !tt_bothMissing(f)) {
+              f.rungHits = need; // h18: hold at R7 until EACH factor has been the missing one
             } else if (nextR <= 8) {
               var fromR = f.rung;
               f.rung = nextR;
@@ -2347,6 +2453,8 @@ function tt_getFactStates(eng) {
       rung: f.rung, confirmedRung: f.confirmedRung, fluentRung: f.fluentRung || 0,
       reinforceLeft: f.reinforceLeft, dueAtTs: f.dueAtTs, bridge: f.bridge,
       lastAskedAtQ: f.lastAskedAtQ,
+      // h18: sitting at the R4→R5 gate, ready to cross — Pairs' ÷ stretch (tt_stretchOpenBridge)
+      bridgeReady: f.rung === 4 && tt_bridgeEligible(eng, f),
     });
   }
   return out;
@@ -2359,6 +2467,140 @@ function tt_getFactStates(eng) {
 function tt_describeFactKey(eng, factKey, rung, rng, flags) {
   var f = eng.facts[factKey];
   return f ? tt_describe(eng, f, rung, rng, flags) : null;
+}
+
+// --- Class-C games (Pop, Pairs): engine-directed asks (h18) ----------------------------
+// tt_nextQuestion owns placement, the bridge and introduction — but only the drill calls
+// it, so a child who never opens Quiz was never placed, never bridged and never introduced
+// to a fact (ZERO progress). These entry points give Pop/Pairs the SAME mechanisms through
+// the same gates, in tile form. Design: tables_classc_placement_scratch.md (h18).
+
+// The tile placement is owed: it has never run, the keypad placement hasn't completed, and
+// the session isn't `only`-scoped (the same skip rule as Quiz's placement).
+function tt_tilePlacementPending(eng, sessionCtx) {
+  if (eng.tilePlacementDone || !eng.probe || eng.probe.done) return false;
+  return tt_modeInfo(sessionCtx.mode).kind !== "only";
+}
+
+// Tile options for a descriptor built without them (a keypad-rung battery stage):
+// × → the R3 mixed-12 set; missing factor / ÷ → the 1..N line.
+function tt_tileOptions(eng, d, rng) {
+  var f = eng.facts[d.factKey];
+  if (!d.scaffold || !d.scaffold.options) {
+    if (d.form === "product") d.scaffold = { options: tt_distractors(eng, f, [f.a, f.b], TT_C.OPTIONS_R3, rng), ordered: false };
+    else { var fo = []; for (var k = 1; k <= eng.config.tablesUpTo; k++) fo.push(k); d.scaffold = { options: fo, ordered: true }; }
+  }
+  d._tileGame = true;   // tt_batteryRecord: exempt from the speed check (Pop's rt is fixed)
+  return d;
+}
+
+// Pop's next engine-directed ask, or null (Pop then picks its own fact, ttPopPick).
+// Priority mirrors tt_nextQuestion: an in-progress bridge battery → the tile placement →
+// a bridge launch → an introduction. SERVED here (tt_markServed), like the drill — the
+// skin records with tt_recordAnswer and must not serve it again.
+//   opts.force  the skin has nothing recordable → introduce on WIP room alone (the drill's
+//               empty-pool fallback; without it the warm-up never ends and nothing is introduced)
+function tt_classCNext(eng, sessionCtx, rng, opts) {
+  opts = opts || {};
+  if (eng.battery) {
+    var bd = tt_tileOptions(eng, tt_batteryDescriptor(eng, eng.facts[eng.battery.key], eng.battery, rng), rng);
+    tt_markServed(eng, bd, sessionCtx);
+    return bd;
+  }
+  if (tt_tilePlacementPending(eng, sessionCtx)) {
+    if (!eng.tileProbe || eng.tileProbe.kind !== "tile") eng.tileProbe = tt_newProbeMachine(eng.config.tablesUpTo, "tile");
+    var pd = tt_probeNext(eng, sessionCtx, rng, eng.tileProbe);
+    if (pd) { tt_markServed(eng, pd, sessionCtx); return pd; }
+  }
+  var bl = tt_maybeLaunchBridge(eng, sessionCtx, rng);
+  if (bl) { tt_tileOptions(eng, bl, rng); tt_markServed(eng, bl, sessionCtx); return bl; }
+  if (tt_introAllowed(eng, tt_effectiveWip(eng), { force: !!opts.force })) {
+    var nf = tt_nextIntroFact(eng, sessionCtx);
+    if (nf) {
+      var d = tt_serveIntro(eng, nf, sessionCtx, rng);   // served + introduced (seen, R1, inFlux)
+      // Pop needs bubbles: the R1 full-table set (the gentlest), oriented to match it.
+      var d1 = tt_describe(eng, nf, 1, rng, {});
+      d.presented = d1.presented; d.scaffold = d1.scaffold; d._tileGame = true;
+      return d;
+    }
+  }
+  return null;
+}
+
+// Pairs' tile placement (h18): ONE board of × probes (groups 0–1, 3 easy + 3 hard each; Kath) —
+// no ÷ probes, all shown at once, so the
+// stop rules can't apply (tt_probeSeed's frontier gate handles a partly-probed group). A fresh
+// draw; replaces a Pop tile machine left part-way. Not served here: the skin serves + records
+// each first-half answer, then calls tt_probeBoardFinish. Null if no tile placement is owed.
+function tt_probeBoard(eng, sessionCtx, rng) {
+  if (!tt_tilePlacementPending(eng, sessionCtx)) return null;
+  var pm = eng.tileProbe = tt_newProbeMachine(eng.config.tablesUpTo, "board"), out = [];
+  for (var g = 0; g < pm.groups.length; g++) {
+    pm.groups[g] = tt_drawProbeGroup(eng, pm, g, rng);
+    for (var i = 0; i < pm.groups[g].length; i++) {
+      var item = pm.groups[g][i];
+      var d = tt_describe(eng, eng.facts[item.k], 3, rng, { ceremonial: true, probe: true });
+      d._probeG = g; d._probeT = item.t; d._probeDiv = false; d._probeSlot = item.slot; d._probeTile = true;
+      d._why = "tile placement board g" + (g + 1) + " " + item.t;
+      out.push(d);
+    }
+  }
+  return out;
+}
+// The board's evidence window has closed: seed + retire. Nothing answered → discard
+// (the placement stays owed). Returns whether it seeded.
+function tt_probeBoardFinish(eng) {
+  var pm = eng.tileProbe;
+  if (!pm || pm.kind !== "board" || pm.done) return false;
+  var any = pm.results.some(function (r) { return r.easy.length + r.hard.length > 0; });
+  if (!any) { eng.tileProbe = null; return false; }
+  tt_probeFinish(eng, pm);
+  return true;
+}
+// Left mid-board: discard — the placement stays owed and redraws next time.
+function tt_probeBoardAbandon(eng) {
+  if (eng.tileProbe && eng.tileProbe.kind === "board" && !eng.tileProbe.done) eng.tileProbe = null;
+}
+
+// Up to `max` facts a Pairs board may introduce now (h18: ≤2 per board). The first must pass
+// the full gate; the rest of the batch share its spacing (waiveGap) but each still needs WIP
+// room. `tables` (optional) keeps them on the board's chosen tables; otherwise the session
+// scope applies, as in tt_nextIntroFact. Nothing changes until tt_introduceKey.
+function tt_introCandidates(eng, sessionCtx, max, tables, force) {
+  var mi = tt_modeInfo(sessionCtx.mode), effWip = tt_effectiveWip(eng), out = [];
+  var lists = [];
+  if (tables && tables.length) lists.push(tables);
+  else if (mi.kind !== "any") { lists.push(mi.tables); if (mi.kind === "mainly") lists.push(null); }
+  else lists.push(null);
+  for (var li = 0; li < lists.length && !out.length; li++) {
+    for (var i = 0; i < eng.introOrder.length && out.length < max; i++) {
+      var f = eng.facts[eng.introOrder[i]];
+      if (f.seen || (lists[li] && !tt_involves(f, lists[li]))) continue;
+      if (!tt_introAllowed(eng, effWip, { extra: out.length, waiveGap: out.length > 0, force: !!force })) return out;
+      out.push(f.key);
+    }
+  }
+  return out;
+}
+// Introduce one fact now (the Pairs intro card was matched). Same machinery as the drill's
+// R0 intro: seen, R1, in flux, counted as a served question. Null if already seen.
+function tt_introduceKey(eng, key, sessionCtx, rng) {
+  var f = eng.facts[key];
+  if (!f || f.seen) return null;
+  return tt_serveIntro(eng, f, sessionCtx, rng);
+}
+
+// Pairs ÷ stretch (h18, Kath): a fact at R4 that is bridge-eligible, answered correctly in ÷
+// form on the first half of a board → its bridge opens (→ R5, provisional; R5 is still
+// confirmed by play). Not a battery pass, so the gate fade is untouched. A wrong stretch
+// answer is never reported (a child challenging themselves isn't punished).
+function tt_stretchOpenBridge(eng, key) {
+  var f = eng.facts[key];
+  if (!f || f.rung !== 4 || !tt_bridgeEligible(eng, f)) return false;
+  if (eng.battery && eng.battery.key === key) eng.battery = null;
+  tt_openBridge(eng, f);
+  tt_noteAchievement(eng, f);
+  return true;
 }
 function tt_getTableProgress(eng, table) {
   var mastered = 0, learning = 0, unseen = 0, total = 0, fluent = 0;
@@ -2422,6 +2664,46 @@ function tt_noteAchievement(eng, f) {
   if (!eng.achBest) eng.achBest = {};
   var t = tt_achTier(eng, f);
   if (t > (eng.achBest[f.key] || 0)) eng.achBest[f.key] = t;
+  // h18 map: best-ever STAGE + shade, each kept at its own max (child map never loses colour).
+  // (Entries written before the stage scale have `sym`, not `stage` — ignored, recomputed from now.)
+  if (!eng.mapBest) eng.mapBest = {};
+  var m = tt_mapCell(eng, f), b = eng.mapBest[f.key];
+  var bs = b && b.stage != null ? b.stage : 0, bl = b && b.stage != null ? b.level : 0;
+  if (m.stage > bs || m.level > bl) eng.mapBest[f.key] = { stage: Math.max(m.stage, bs), level: Math.max(m.level, bl) };
+}
+
+// h18 map cell (Kath): the map must never show a child as stronger than they are — a fact
+// placement STARTED but the child hasn't earned in play is a plain dot, uncoloured.
+// STAGE = the latest form EARNED in play (confirmedRung — placement never sets it), in ladder
+// order, so best-ever is a plain max. Symbols (tt_panels TT_MAP_SYMS):
+//   0 blank unreleased · 1 · released, < R3 earned · 2 × R3 (or R6 on an unbridged seeded fact)
+//   3 ? R4 missing-number tiles · 4 ÷ R5/R6 with the bridge open · 5 ? R7 TYPED missing number
+//   (Kath: an important skill, show it) · 6 ★ silver R8 · 7 ★ gold mastered
+// SHADE LEVEL = how good: 0 unreleased · 1 released · 2×cr + 1 if fluent at cr (2..17) ·
+//   18 mastered (R8, fast, retained). One hue, pale → deep blue (tt_panels ttMapShade).
+function tt_mapCell(eng, f) {
+  if (!f.seen) return { stage: 0, level: 0 };
+  if (tt_phase(eng, f) === "mastered") return { stage: 7, level: 18 };
+  var cr = f.confirmedRung, stage;
+  if (cr >= 8) stage = 6;
+  else if (cr === 7) stage = 5;
+  else if (cr >= 5 && f.bridge === "open") stage = 4;
+  else if (cr === 4) stage = 3;
+  else if (cr >= 3) stage = 2;             // R3, or R6 unbridged (keypad × earned, ? not yet)
+  else stage = 1;
+  var fluent = cr > 0 && (f.fluentRung || 0) >= cr;
+  return { stage: stage, level: cr === 0 ? 1 : 2 * cr + (fluent ? 1 : 0) };
+}
+// Read-only map cells keyed by fact. best=true → the child's best-ever (mapBest ∨ now);
+// best=false → the honest current state (the adult card).
+function tt_getMapCells(eng, best) {
+  var out = {}, mb = eng.mapBest || {};
+  for (var key in eng.facts) {
+    var m = tt_mapCell(eng, eng.facts[key]), b = mb[key];
+    if (best && b && b.stage != null) m = { stage: Math.max(m.stage, b.stage), level: Math.max(m.level, b.level) };
+    out[key] = m;
+  }
+  return out;
 }
 // Read-only. tier/counts = current FOCUS (adult); best/bestCounts = best-ever monotonic
 // tier (child). Facts are the unique facts (3×4 and 4×3 are ONE fact): 78 at tablesUpTo 12.
@@ -2531,6 +2813,7 @@ function tt_deserialize(json) {
   for (var fk in eng.facts) {
     var ff = eng.facts[fk];
     if (!ff.r6Orders) ff.r6Orders = { ab: ff.confirmedRung >= 7, ba: ff.confirmedRung >= 7 };
+    if (!ff.r7Missing) ff.r7Missing = { a: ff.confirmedRung >= 8, b: ff.confirmedRung >= 8 };   // h18 grandfather
     if (!ff.r8Dirs) { var m8 = ff.confirmedRung >= 8 && (ff.fluentRung || 0) >= 8; ff.r8Dirs = { a: m8, b: m8 }; }
   }
   eng.schemaVersion = 2;
@@ -2554,10 +2837,15 @@ if (typeof module !== "undefined" && module.exports) {
     tt_serialize: tt_serialize, tt_deserialize: tt_deserialize,
     tt_inFluxCount: tt_inFluxCount, tt_effectiveWip: tt_effectiveWip, tt_challengeIndex: tt_challengeIndex,
     tt_phase: tt_phase, tt_fastBar: tt_fastBar, tt_describe: tt_describe, tt_buildAsk: tt_buildAsk, tt_tableWindow: tt_tableWindow,
-    tt_bothOrders: tt_bothOrders, tt_bothDivDirs: tt_bothDivDirs,
+    tt_bothOrders: tt_bothOrders, tt_bothDivDirs: tt_bothDivDirs, tt_bothMissing: tt_bothMissing,
     tt_factDifficulty: tt_factDifficulty, tt_introGroupOfFact: tt_introGroupOfFact,
     tt_tableStarted: tt_tableStarted,
     tt_bridgeEligible: tt_bridgeEligible,
+    TT_PROBE_POOLS: TT_PROBE_POOLS, tt_introAllowed: tt_introAllowed,
+    tt_tilePlacementPending: tt_tilePlacementPending, tt_classCNext: tt_classCNext,
+    tt_probeBoard: tt_probeBoard, tt_probeBoardFinish: tt_probeBoardFinish, tt_probeBoardAbandon: tt_probeBoardAbandon,
+    tt_introCandidates: tt_introCandidates, tt_introduceKey: tt_introduceKey, tt_stretchOpenBridge: tt_stretchOpenBridge,
+    tt_mapCell: tt_mapCell, tt_getMapCells: tt_getMapCells,
     TT_ACH_TIERS: TT_ACH_TIERS, tt_achTier: tt_achTier, tt_focusTier: tt_focusTier, tt_getAchievements: tt_getAchievements,
   };
 }
@@ -3249,33 +3537,55 @@ function ttMountScaffold(el) {
 // --- P6 Progress / achievements map (ported from tt_shell buildGridTable) -------
 // The truthful progress visual: full N×N times-table square, mirrored cells share
 // a colour (commutativity made visible). Header fill = per-table fluency ("getting
-// speedy"); fluent spark; improved = outlined. Engine-agnostic: takes plain data, not `eng`.
-// data: { N, grid (tt_getMasteryGrid output), tableFluency:{t:pct}, improved:[keys],
-//         best:{key: tier} }  — best = BEST-EVER achievement tier (h16, tt_getAchievements).
+// speedy"). Engine-agnostic: takes plain data, not `eng`.
+// data: { N, tableFluency:{t:pct}, cells:{key:{sym, level}} (tt_getMapCells, best-ever) }
 // The child sees best-ever (a demotion never takes a star away); the adult card is honest.
-// (`bridged` is no longer drawn: a ÷ unlock is now visible as the ÷ symbol, and it is
-// already in `improved` — tt_openBridge adds it to factsImproved.)
-// h16 (Kath "more colourful"): each cell is coloured + marked by its BEST-EVER stage —
-// · × ? ÷ ★ ★ — replacing the old 9-step blue shading by confirmedRung (finer than a child
-// needs, and all one hue). Classes tt-map-t0..t5 carry the palette (game_template CSS).
-var TT_MAP_SYMS = ["", "×", "?", "÷", "★", "★"];
+// h18 (Kath): no "worked on this session" outline any more — the map shows standing, not activity.
+// h18 (Kath): two separate signals. SYMBOL = flexibility — the most flexible form EARNED in
+// play (blank unreleased · dot released · × R3 · ? R4 · ÷ R5+ · ★ silver · ★ gold).
+// COLOUR = "are they getting good" — ONE hue, pale → deep blue by earned rung, a step darker
+// when fluent; darkest = mastered (quick and reliable). Engine cells: tt_mapCell (level 0..18).
+// Placement-started facts show a dot, uncoloured, until earned — the map never flatters.
+// (Replaces the h16 multi-colour tiers, which coloured every started fact as "×".)
+var TT_MAP_SYMS = ["", "·", "×", "?", "÷", "?", "★", "★"];   // by tt_mapCell STAGE (5 = typed ?, R7)
+var TT_MAP_MAX_LEVEL = 18;
+// level → { bg, fg }. 0 = unreleased (near-white); 1..18 = pale → deep blue.
+function ttMapShade(level) {
+  if (!level) return { bg: "#f4f6f8", fg: "#b0bcc8" };
+  var t = (level - 1) / (TT_MAP_MAX_LEVEL - 1);
+  var light = Math.round(95 - t * 73), sat = Math.round(40 + t * 50);
+  return { bg: "hsl(212, " + sat + "%, " + light + "%)", fg: light < 55 ? "#f2f6ff" : "#0d2440" };
+}
+function ttMapPaint(td, level, stage) {
+  var s = ttMapShade(level);
+  td.style.background = s.bg;
+  td.style.color = stage === 7 ? "#ffcc33" : s.fg;   // gold star stays gold
+  td.textContent = TT_MAP_SYMS[stage] || "";
+  if (stage >= 6) td.classList.add("tt-map-star");
+}
 function ttMapKey() {
-  var labels = ["", "times", "missing number", "divide", "silver star", "gold star"];
   var key = document.createElement("div"); key.className = "tt-map-key";
-  for (var t = 1; t <= 5; t++) {
+  var items = [[1, 1, "started"], [2, 6, "times"], [3, 8, "missing number"], [4, 10, "divide"],
+               [5, 14, "missing number, typed"], [6, 16, "silver star"], [7, 18, "gold star"]];
+  items.forEach(function (x) {
     var it = document.createElement("span"); it.className = "tt-map-key-item";
-    it.innerHTML = "<span class='tt-map-sw tt-map-t" + t + "'>" + TT_MAP_SYMS[t] + "</span>" + labels[t];
+    var sw = document.createElement("span"); sw.className = "tt-map-sw"; ttMapPaint(sw, x[1], x[0]);
+    it.appendChild(sw); it.appendChild(document.createTextNode(x[2]));
     key.appendChild(it);
-  }
+  });
+  var ramp = document.createElement("div"); ramp.className = "tt-map-ramp";
+  var stops = [];
+  for (var l = 1; l <= TT_MAP_MAX_LEVEL; l += 1) stops.push(ttMapShade(l).bg);
+  ramp.innerHTML = "<span>getting started</span><span class='tt-map-ramp-bar' style='background:linear-gradient(to right," +
+    stops.join(",") + ")'></span><span>quick and sure</span>";
+  key.appendChild(ramp);
   return key;
 }
 function ttMountMap(el) {
   function factKey(a, b) { var lo = Math.min(a, b), hi = Math.max(a, b); return lo + "x" + hi; }
   return {
     render: function (data) {
-      var N = data.N, grid = data.grid || {}, fl = data.tableFluency || {}, best = data.best || {};
-      var improved = {};
-      (data.improved || []).forEach(function (k) { improved[k] = true; });
+      var N = data.N, fl = data.tableFluency || {}, cells = data.cells || {};
       function header(t) {
         var th = document.createElement("th"); th.textContent = t;
         var pct = fl[t] || 0;
@@ -3290,11 +3600,8 @@ function ttMountMap(el) {
         var row = document.createElement("tr"); row.appendChild(header(r));
         for (var c2 = 1; c2 <= N; c2++) {
           var td = document.createElement("td");
-          var k = factKey(r, c2), f = grid[k], t = best[k] || 0;
-          td.className = "tt-map-t" + t;
-          td.textContent = TT_MAP_SYMS[t];
-          if (f && f.fluent) td.classList.add("tt-fluent");
-          if (improved[k]) td.classList.add("tt-improved");   // got better THIS session (incl. ÷ unlocked)
+          var k = factKey(r, c2), m = cells[k] || { stage: 0, level: 0 };
+          ttMapPaint(td, m.level, m.stage);
           row.appendChild(td);
         }
         tbl.appendChild(row);
@@ -3331,34 +3638,52 @@ function ttMountCheckpoint(el) {
 // map shows best-ever monotonic stages). Engine-
 // agnostic: takes plain data. Lives on the adult screen, behind the grown-up gate.
 // data: { N, ach (tt_getAchievements output), scopeText }
+// h18: same single blue scale as the child map, but CURRENT (honest) — colour = earned rung +
+// fluency now (tt_getMapCells(eng, false)); symbol = current focus. `level` is only the key swatch.
+// Not started is blank, as on the child map (where a dot means "released").
 var TT_ACH_VIEW = [
-  { sym: "·", label: "not started",                cls: "tt-map-t0" },   // same palette as the child map
-  { sym: "×", label: "practising multiplication",  cls: "tt-map-t1" },
-  { sym: "?", label: "practising missing numbers", cls: "tt-map-t2" },
-  { sym: "÷", label: "practising division",        cls: "tt-map-t3" },
-  { sym: "★", label: "silver — knows it every way", cls: "tt-map-t4" },
-  { sym: "★", label: "gold — mastered",            cls: "tt-map-t5" },
+  { sym: "",  label: "not started",                level: 0 },
+  { sym: "×", label: "practising multiplication",  level: 4 },
+  { sym: "?", label: "practising missing numbers", level: 8 },
+  { sym: "÷", label: "practising division",        level: 10 },
+  { sym: "★", label: "silver — knows it every way", level: 16 },
+  { sym: "★", label: "gold — mastered",            level: 18, gold: true },
+  { sym: "·", label: "started, nothing earned yet", level: 1 },   // 6 (h18, Kath): released, confirmedRung 0
 ];
+// Display order of the key/counts (index 6 sits after "not started").
+var TT_ACH_ORDER = [0, 6, 1, 2, 3, 4, 5];
+// Which TT_ACH_VIEW row a fact shows as. h18 (Kath): a fact the child hasn't earned ANYTHING on
+// in play (map level 1 = released, confirmedRung 0 — e.g. only placement-started) is a dot,
+// whatever form it is being practised as: "·" = hasn't done this yet.
+function ttAchViewIdx(tier, cell) { return cell && cell.level === 1 ? 6 : tier; }
+function ttAchSwatch(v) {
+  var s = ttMapShade(v.level);
+  return "<span class='tt-map-sw' style='background:" + s.bg + ";color:" + (v.gold ? "#ffcc33" : s.fg) + "'>" + v.sym + "</span>";
+}
 function ttMountAchievements(el) {
   function factKey(a, b) { var lo = Math.min(a, b), hi = Math.max(a, b); return lo + "x" + hi; }
   return {
     render: function (data) {
-      var N = data.N, ach = data.ach, facts = ach.facts;
+      var N = data.N, ach = data.ach, facts = ach.facts, cells = data.cells || {};
       var card = document.createElement("div"); card.className = "tt-ach-card";
       var h = document.createElement("div"); h.className = "tt-ach-title"; h.textContent = "Progress summary"; card.appendChild(h);
       var ex = document.createElement("div"); ex.className = "tt-ach-explain";
-      ex.innerHTML = "<b>×</b> <b>?</b> <b>÷</b> show what each fact is being practised as <b>right now</b>. " +
+      ex.innerHTML = "<b>·</b> = started but nothing earned in play yet (including facts the placement check began). " +
+        "<b>×</b> <b>?</b> <b>÷</b> show what each fact is being practised as <b>right now</b>. " +
         "Every fact goes round × → ? → ÷ twice: first choosing from tiles, then typing from memory — so a fact " +
         "showing × again after ÷ has moved UP to recall, not slipped. " +
-        "<span class='tt-map-sw tt-map-t4'>★</span> silver = every form, from memory. <span class='tt-map-sw tt-map-t5'>★</span> gold = also fast, and still right after time away. " +
+        ttAchSwatch(TT_ACH_VIEW[4]) + " silver = every form, from memory. " + ttAchSwatch(TT_ACH_VIEW[5]) + " gold = also fast, and still right after time away. " +
+        "<b>Colour</b> = how far each fact has been earned in play, darker when it is also fast (pale → deep blue); " +
         "<b>Silver is competent but may be slow or recent — only gold means long-term, automatic recall.</b> " +
         "This view is honest (a fact that slips shows it); the child's own map only ever shows their best. " +
         ach.total + " facts — 3×4 and 4×3 count once.";
       card.appendChild(ex);
       var counts = document.createElement("div"); counts.className = "tt-ach-counts";
-      TT_ACH_VIEW.forEach(function (v, i) {
-        var s = document.createElement("span");
-        s.innerHTML = "<b>" + ach.counts[i] + "</b> <span class='tt-map-sw " + v.cls + "'>" + v.sym + "</span> " + v.label;
+      var n = [0, 0, 0, 0, 0, 0, 0];
+      for (var fk in facts) n[ttAchViewIdx(facts[fk].tier, cells[fk])]++;
+      TT_ACH_ORDER.forEach(function (i) {
+        var v = TT_ACH_VIEW[i], s = document.createElement("span");
+        s.innerHTML = "<b>" + n[i] + "</b> " + ttAchSwatch(v) + " " + v.label;
         counts.appendChild(s);
       });
       card.appendChild(counts);
@@ -3369,8 +3694,11 @@ function ttMountAchievements(el) {
       for (var r = 1; r <= N; r++) {
         var row = document.createElement("tr"), rh = document.createElement("th"); rh.textContent = r; row.appendChild(rh);
         for (var c2 = 1; c2 <= N; c2++) {
-          var td = document.createElement("td"), f = facts[factKey(r, c2)], t = f ? f.tier : 0;
-          td.textContent = TT_ACH_VIEW[t].sym; td.className = TT_ACH_VIEW[t].cls;
+          var k = factKey(r, c2), td = document.createElement("td"), f = facts[k], t = f ? ttAchViewIdx(f.tier, cells[k]) : 0;
+          var sh = ttMapShade(cells[k] ? cells[k].level : 0);
+          td.textContent = TT_ACH_VIEW[t].sym; td.style.background = sh.bg;
+          td.style.color = TT_ACH_VIEW[t].gold ? "#ffcc33" : sh.fg;
+          if (t === 4 || t === 5) td.classList.add("tt-map-star");
           row.appendChild(td);
         }
         tbl.appendChild(row);
@@ -3404,6 +3732,9 @@ function ttMountAchievements(el) {
 //   ttPairsDeal(entries, rng)        → the shuffled 2N cards
 //   ttPairsResolve(c1, c2)           → what a tap-pair means (match by VALUE)
 //   ttPairsEvidenceOK(...)           → the §2.1 four-part evidence gate
+//   ttPairsFirstHalfOK(...)          → rules 1+2 only (h18: probe + ÷ stretch cards)
+//   ttPairsStretch(s, op)            → h18: a ÷-board card that can open its bridge
+//   ttPairsIntroText(view, answer)   → h18: a solved intro card's face
 //
 // `states` come from tt_getFactStates (read-only, D2 — the skin never touches
 // eng.facts). `rungSpecs` is the engine's real TT_RUNGS, passed in: the evidence
@@ -3440,16 +3771,34 @@ function ttPairsRecordable(s, op, rungSpecs) {
   return spec.form === ttPairsFormOf(op);
 }
 
-// Rules 1, 2 and 3/4 together, at the moment a tap-pair resolves.
+// h18 ÷ stretch (Kath): in a ÷ board, a fact sitting at R4 and ready to cross the
+// bridge (tt_getFactStates .bridgeReady) is a STRETCH card. A correct first-half
+// first-attempt match opens its bridge; a wrong one records nothing.
+function ttPairsStretch(s, op) {
+  return op === "div" && !!s.seen && !!s.bridgeReady;
+}
+
+// Rules 1 and 2 — first attempt on this question card, first half of the board.
+// The gate for every kind of first-half evidence: graded (below), a placement probe
+// card, a ÷ stretch card.
 //   res          — from ttPairsResolve
-//   entry        — the board entry for the question card (carries .attempted, .recordable)
+//   entry        — the board entry for the question card (carries .attempted)
 //   matchedCount — pairs already cleared BEFORE this resolution
 //   n            — pairs on the board
-function ttPairsEvidenceOK(res, entry, matchedCount, n) {
+function ttPairsFirstHalfOK(res, entry, matchedCount, n) {
   if (!res || res.kind !== "qa") return false;     // two of a kind: not an answer to anything
   if (!entry || entry.attempted) return false;     // rule 1: first attempt per question card
-  if (!entry.recordable) return false;             // rules 3 + 4
   return matchedCount < Math.ceil(n / 2);          // rule 2: first half only
+}
+// Rules 1, 2 and 3/4 together, at the moment a tap-pair resolves.
+function ttPairsEvidenceOK(res, entry, matchedCount, n) {
+  return ttPairsFirstHalfOK(res, entry, matchedCount, n) && !!entry.recordable;   // rules 3 + 4
+}
+
+// h18 intro card: shown SOLVED ("3 × 4 = 12") — the child matches the answer they can
+// see. `view` = ttQuestionView of the R1 × descriptor.
+function ttPairsIntroText(view, answer) {
+  return ttPairsCardText(view) + " " + answer;
 }
 
 // --- selection --------------------------------------------------------------
@@ -3484,7 +3833,9 @@ function ttPairsRank(states, opts) {
     if (tp !== tq) return tp - tq;
     // Within a tier, facts Pairs can actually record for go first (Kath's "prefer
     // bridged" for ÷, generalised to all three forms — design §5.1).
-    var rp = ttPairsRecordable(p, op, specs) ? 0 : 1, rq = ttPairsRecordable(q, op, specs) ? 0 : 1;
+    // h18: a ÷ stretch card counts as "can record" here — Kath: "allow the choice".
+    var rp = (ttPairsRecordable(p, op, specs) || ttPairsStretch(p, op)) ? 0 : 1;
+    var rq = (ttPairsRecordable(q, op, specs) || ttPairsStretch(q, op)) ? 0 : 1;
     if (rp !== rq) return rp - rq;
     // "In flight" means PRACTISED, not merely introduced. Placement seeds a large
     // block of facts at once (measured h13: a 16-question start left all 78 seen
@@ -3536,12 +3887,15 @@ function ttPairsRng(seq, base) {
 function ttPairsPlan(states, opts) {
   var op = opts.op, specs = opts.rungSpecs, n = opts.n || TT_PAIRS_N;
   var ranked = ttPairsRank(states, opts), plan = [];
+  var skip = opts.exclude || [];                    // h18: facts already on the board as intro cards
   for (var i = 0; i < ranked.length && plan.length < n; i++) {
     var s = ranked[i], rec = ttPairsRecordable(s, op, specs);
+    if (skip.indexOf(s.key) >= 0) continue;
     plan.push({
       key: s.key, a: s.a, b: s.b,
       rung: rec ? s.rung : TT_PAIRS_SHOW_RUNG[op],
       recordable: rec,
+      stretch: !rec && ttPairsStretch(s, op),
       orient: ttPairsOrientSeq(op, s.a, s.b, ttPairsOrientTable(s.a, s.b, opts.tables)),
     });
   }
@@ -3596,6 +3950,7 @@ if (typeof module !== "undefined" && module.exports) {
     TT_PAIRS_N: TT_PAIRS_N, TT_PAIRS_RT: TT_PAIRS_RT, TT_PAIRS_SHOW_RUNG: TT_PAIRS_SHOW_RUNG,
     ttPairsFormOf: ttPairsFormOf, ttPairsRecordable: ttPairsRecordable,
     ttPairsEvidenceOK: ttPairsEvidenceOK, ttPairsTier: ttPairsTier, ttPairsRank: ttPairsRank,
+    ttPairsStretch: ttPairsStretch, ttPairsFirstHalfOK: ttPairsFirstHalfOK, ttPairsIntroText: ttPairsIntroText,
     ttPairsOrientTable: ttPairsOrientTable, ttPairsOrientSeq: ttPairsOrientSeq, ttPairsRng: ttPairsRng,
     ttPairsPlan: ttPairsPlan, ttPairsCardText: ttPairsCardText, ttPairsShuffle: ttPairsShuffle,
     ttPairsDeal: ttPairsDeal, ttPairsGrid: ttPairsGrid, ttPairsResolve: ttPairsResolve,
@@ -3626,6 +3981,8 @@ if (typeof module !== "undefined" && module.exports) {
 //   qCount()               engine question counter (staleness ranking)
 //   describe(key,rung,seq) a REAL engine descriptor, orientation scripted by seq
 //   record(d, correct)     serve + record, reveal-safe (tt_flow.pairsRecord)
+//   h18: probeBoard() / probeBoardFinish() / probeBoardAbandon() — the tile placement
+//        board; introCandidates(max,tables,force) + introduce(key); stretch(key) — ÷ stretch
 // Design: tables_game1_pairs_design.md. Assembled by cat.
 // ============================================================================
 
@@ -3677,11 +4034,7 @@ function ttMakePairs(els) {
     defs.forEach(function (d) {
       var b = document.createElement("button");
       b.type = "button"; b.className = "tt-chip tt-pairs-op"; b.textContent = d.label; b.dataset.op = d.op;
-      b.addEventListener("click", function () {
-        op = d.op;
-        Array.prototype.forEach.call(els.ops.children, function (c) { c.classList.toggle("sel", c === b); });
-        hint("");
-      });
+      b.addEventListener("click", function () { selectOp(d.op); hint(""); });
       els.ops.appendChild(b);
     });
   })();
@@ -3736,28 +4089,67 @@ function ttMakePairs(els) {
       : "Pick how the question looks, then press New Game";
   }
 
+  // h18: a probe board is open until its first half is matched (then it seeds).
+  var probeOpen = false;
+  function closeProbe(finish) {
+    if (!probeOpen) return;
+    probeOpen = false;
+    if (finish) ctx.probeBoardFinish(); else ctx.probeBoardAbandon();
+  }
+  function selectOp(o) {
+    op = o;
+    Array.prototype.forEach.call(els.ops.children, function (c) { c.classList.toggle("sel", c.dataset.op === o); });
+  }
+
   function newGame() {
+    closeProbe(false);                                 // a new board abandons a part-played probe board
+    // h18 tile placement owed → this board IS the placement: 12 × probe cards,
+    // whatever the setup strip says (design scratch P3).
+    var probe = ctx.probeBoard();
+    if (probe) {
+      hint(""); selectOp("x");
+      entries = probe.map(function (d) {
+        return { d: d, answer: d.correctAnswer, qText: ttPairsCardText(ttQuestionView(d)), probe: true, recordable: false, attempted: false };
+      });
+      probeOpen = true;
+      return deal();
+    }
     if (!op) { hint("Pick how the question looks first."); return; }
     var control = ctx.scope().control;
     var tables = (control === "game") ? [] : selectedTables();
     if (control !== "game" && !tables.length) { hint("Pick a times table first."); return; }
     hint("");
 
-    var plan = ttPairsPlan(ctx.factStates(), {
+    var states = ctx.factStates(), planOpts = {
       op: op, tables: tables, rungSpecs: ctx.rungSpecs,
       nowTs: Date.now(), qCount: ctx.qCount(), n: TT_PAIRS_N
-    });
+    };
+    // h18 intros (≤2): forced when the board would have nothing to record (the drill's
+    // empty-pool rule — else a fresh child's warm-up never ends and nothing is introduced).
+    var full = ttPairsPlan(states, planOpts);
+    var force = !full.some(function (p) { return p.recordable || p.stretch; });
+    var intros = ctx.introCandidates(2, tables, force);
+    planOpts.n = TT_PAIRS_N - intros.length; planOpts.exclude = intros;
+    var plan = ttPairsPlan(states, planOpts);
     entries = [];
+    intros.forEach(function (key) {
+      var d = ctx.describe(key, 1, []);
+      if (d) entries.push({ d: d, answer: d.correctAnswer, qText: ttPairsIntroText(ttQuestionView(d), d.correctAnswer),
+        intro: true, recordable: false, attempted: false });
+    });
     for (var i = 0; i < plan.length; i++) {
       var p = plan[i], d = ctx.describe(p.key, p.rung, p.orient);
       if (!d) continue;
       entries.push({
         d: d, answer: d.correctAnswer, qText: ttPairsCardText(ttQuestionView(d)),
-        recordable: p.recordable, attempted: false
+        recordable: p.recordable, stretch: !!p.stretch, attempted: false
       });
     }
     if (!entries.length) { hint("No questions available yet — try the drill first."); return; }
+    deal();
+  }
 
+  function deal() {
     firstPick = null; busy = false; matched = 0;
     els.done.textContent = "";
     var animal = TT_PAIRS_ANIMALS[Math.floor(Math.random() * TT_PAIRS_ANIMALS.length)];
@@ -3791,11 +4183,18 @@ function ttMakePairs(els) {
     busy = true;
     var res = ttPairsResolve(firstPick.card, card);
     if (res && res.kind === "qa") {
-      var entry = entries[res.qIndex];
+      var entry = entries[res.qIndex], n = entries.length;
       // §2.1: the gate decides; `attempted` is set either way, so a retry after a
       // miss can never be a second recorded wrong (which is what demotes).
-      if (ttPairsEvidenceOK(res, entry, matched, entries.length)) ctx.record(entry.d, res.match);
+      // h18: probe cards record placement (either way); a ÷ stretch card only opens
+      // its bridge on a correct match; an intro card introduces when matched.
+      if (entry.probe) { if (ttPairsFirstHalfOK(res, entry, matched, n)) ctx.record(entry.d, res.match); }
+      else if (entry.stretch) { if (res.match && ttPairsFirstHalfOK(res, entry, matched, n)) ctx.stretch(entry.d.factKey); }
+      else if (ttPairsEvidenceOK(res, entry, matched, n)) ctx.record(entry.d, res.match);
+      if (entry.intro && res.match) ctx.introduce(entry.d.factKey);
       entry.attempted = true;
+      // the first half is the whole evidence window — the placement seeds as it closes
+      if (probeOpen && res.match && matched + 1 >= Math.ceil(n / 2)) closeProbe(true);
     }
     if (res && res.match) settle(el, true); else settle(el, false);
   }
@@ -3818,6 +4217,7 @@ function ttMakePairs(els) {
   }
 
   function reset() {
+    closeProbe(false);                                 // leaving mid probe board: the placement stays owed
     entries = []; firstPick = null; busy = false; matched = 0;
     els.grid.innerHTML = ""; els.img.removeAttribute("src"); els.img.alt = ""; els.img.style.objectPosition = "";
     els.credit.textContent = ""; els.done.textContent = ""; hint("");
@@ -3856,6 +4256,8 @@ function ttMakePairs(els) {
 //   ttPopPick(states, opts)         → the next fact (recordable first; R6+ only if needed)
 //   ttPopEquation(d)                → coloured tokens + array dimensions for a descriptor
 //   ttPopEvidenceOK(q)              → first answer on a recordable question only
+//   ttPopAnyRecordable(states,opts) → h18: anything recordable in scope? (else force an intro)
+//   ttPopFromEngine(d)              → h18: flags for an engine-directed ask (probe/battery/intro)
 //
 // Reuses ttPairsTier (tt_skin_pairs.js) — the same "in flight" priority. Load order:
 // tt_skin_pairs.js before this file. Assembled by cat.
@@ -3920,15 +4322,19 @@ function ttPopRank(list, nowTs, qCount, rng) {
 // Recency is honoured across tiers first; only if EVERY tier is exhausted by it
 // is it waived. So one lonely tile-rung fact alternates with R6+ facts rather
 // than being asked back-to-back.
+// The facts in play for this scope: "only" restricts; "mainly" prefers the focus
+// tables but falls back to everything while none of them is seen.
+function ttPopPool(states, opts) {
+  var tables = opts.tables || null;
+  if (!tables || !tables.length) return states;
+  var inScope = states.filter(function (s) { return ttPopInScope(s, tables); });
+  return (opts.kind === "only" || inScope.some(function (s) { return s.seen; })) ? inScope : states;
+}
+
 function ttPopPick(states, opts) {
   var specs = opts.rungSpecs, rng = opts.rng || Math.random;
-  var recent = opts.recent || [], tables = opts.tables || null;
-  var pool = states;
-  if (tables && tables.length) {
-    var inScope = states.filter(function (s) { return ttPopInScope(s, tables); });
-    // "only" restricts; "mainly" prefers but falls back to everything.
-    if (opts.kind === "only" || inScope.some(function (s) { return s.seen; })) pool = inScope;
-  }
+  var recent = opts.recent || [];
+  var pool = ttPopPool(states, opts);
   var A = [], B = [], C = [];
   pool.forEach(function (s) {
     if (ttPopRecordable(s, specs)) A.push(s);
@@ -3951,6 +4357,21 @@ function ttPopPick(states, opts) {
   var s = choose(false) || choose(true);
   if (!s) return null;
   return { key: s.key, a: s.a, b: s.b, rung: ttPopShowRung(s, specs), recordable: ttPopRecordable(s, specs) };
+}
+
+// h18: does Pop have ANY recordable fact in scope? If not, the engine may introduce on
+// WIP room alone (tt_classCNext opts.force) — the drill's empty-pool rule. Scope as
+// ttPopPick: `only` restricts; `mainly` prefers the focus but falls back.
+function ttPopAnyRecordable(states, opts) {
+  return ttPopPool(states, opts).some(function (s) { return ttPopRecordable(s, opts.rungSpecs); });
+}
+
+// An engine-directed ask (tt_classCNext → tile probe, bridge battery stage, or intro) as
+// Pop's question. Probe and battery answers are evidence (first answer only, as ever);
+// an intro is shown solved with its card up — the child copies it, nothing records.
+function ttPopFromEngine(d) {
+  var intro = !!(d.flags && d.flags.intro);
+  return { recordable: !intro, intro: intro, served: true };
 }
 
 // Descriptor → Pop's coloured equation. Roles (Pop's array): a = ROWS (orange,
@@ -3996,6 +4417,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     TT_POP_RT: TT_POP_RT, TT_POP_RECENT: TT_POP_RECENT, TT_POP_TOP: TT_POP_TOP,
     ttPopRecordable: ttPopRecordable, ttPopShowRung: ttPopShowRung, ttPopPick: ttPopPick,
+    ttPopAnyRecordable: ttPopAnyRecordable, ttPopFromEngine: ttPopFromEngine,
     ttPopEquation: ttPopEquation, ttPopBubbleValues: ttPopBubbleValues, ttPopEvidenceOK: ttPopEvidenceOK,
   };
 }
@@ -4021,6 +4443,8 @@ if (typeof module !== "undefined" && module.exports) {
 // ctx (from tt_flow — the same surface Pairs gets, plus focus()):
 //   rungSpecs, factStates(), qCount(), describe(key,rung,seq), record(d,correct),
 //   focus() → { kind, tables }   the session's resolved scope (tt_modeInfo)
+//   next({force}) → an engine-served ask or null (h18: tile placement, bridge, intro);
+//   recordServed(d,correct) records it without serving again
 //
 // Kath h17 changes from the exemplar: question + bubbles from the engine; the
 // array card is HIDDEN until the first wrong tap (then it stays, as help); a
@@ -4083,25 +4507,38 @@ function ttMakePop(root) {
   root.addEventListener('pointerdown', () => audio());
 
   // ───────── question: from the ENGINE (tt_skin_pop.js decides) ─────────
+  // h18: the ENGINE goes first — tile placement, a bridge battery stage, or an
+  // introduction (ctx.next, already served). Otherwise Pop picks its own fact.
   function makeQuestion() {
-    const f = ctx.focus();
-    const pick = ttPopPick(ctx.factStates(), {
-      rungSpecs: ctx.rungSpecs, kind: f.kind, tables: f.tables, recent: recent,
-      nowTs: Date.now(), qCount: ctx.qCount(), rng: Math.random
-    });
+    const f = ctx.focus(), states = ctx.factStates();
+    const popOpts = { rungSpecs: ctx.rungSpecs, kind: f.kind, tables: f.tables };
+    const ed = ctx.next({ force: !ttPopAnyRecordable(states, popOpts) });
+    if (ed) {
+      const m = ttPopFromEngine(ed);
+      recent.push(ed.factKey); if (recent.length > TT_POP_RECENT) recent.shift();
+      return toQuestion(ed, m.recordable, m.served, m.intro);
+    }
+    const pick = ttPopPick(states, Object.assign(popOpts, {
+      recent: recent, nowTs: Date.now(), qCount: ctx.qCount(), rng: Math.random
+    }));
     if (!pick) return null;
     const d = ctx.describe(pick.key, pick.rung, []);
     if (!d) return null;
     recent.push(pick.key); if (recent.length > TT_POP_RECENT) recent.shift();
+    return toQuestion(d, pick.recordable, false, false);
+  }
+  // intro: shown SOLVED with the array card up — the child pops the answer they can see.
+  function toQuestion(d, recordable, served, intro) {
     const eq = ttPopEquation(d);
     return { d: d, a: eq.a, b: eq.b, c: eq.c, toks: eq.toks, miss: eq.miss, ans: eq.ans,
-             values: ttPopBubbleValues(d), recordable: pick.recordable, attempted: false,
-             wrong: false, revealed: false, cardShown: false };
+             values: ttPopBubbleValues(d), recordable: recordable, served: served, intro: intro, attempted: false,
+             wrong: false, revealed: intro, cardShown: intro };
   }
   // The first answer to a question is the only one that can be evidence (and only
-  // on a tile-rung fact). Everything after it is play.
+  // on a tile-rung fact). Everything after it is play. An engine-served ask is
+  // recorded without serving it again.
   function noteAnswer(correct) {
-    if (ttPopEvidenceOK(q)) ctx.record(q.d, correct);
+    if (ttPopEvidenceOK(q)) { if (q.served) ctx.recordServed(q.d, correct); else ctx.record(q.d, correct); }
     q.attempted = true;
   }
 
@@ -4250,7 +4687,7 @@ function ttMakePop(root) {
     bubbles = [];
     snd('pop'); reveal();
     let tier = 1;
-    if (!q.wrong) { total++; score++; streak++; tier = handleStreak(); }
+    if (!q.wrong && !q.intro) { total++; score++; streak++; tier = handleStreak(); }   // copying a shown answer isn't scored
     else { showFb('✓ Got it! 🦀', '#40ffa0'); snd('ding'); setExpr('happy'); celebrate(1); }
     updateScore();
     clearTimeout(newQTimer); newQTimer = setTimeout(newQuestion, HOLD_BY_TIER[tier]);
@@ -4605,7 +5042,8 @@ function ttMakePop(root) {
   return {
     start: start, stop: stop,
     // test seam (browser checks): the live question's public shape, no engine access
-    current: function () { return q ? { factKey: q.d.factKey, rung: q.d.rung, ans: q.ans, values: q.values.slice(), recordable: q.recordable, attempted: q.attempted, cardShown: q.cardShown } : null; },
+    current: function () { return q ? { factKey: q.d.factKey, rung: q.d.rung, ans: q.ans, values: q.values.slice(), recordable: q.recordable, attempted: q.attempted, cardShown: q.cardShown,
+      served: q.served, intro: q.intro, probe: !!q.d.flags.probe, battery: q.d.flags.batteryKind || null } : null; },
   };
 }
 
@@ -4699,7 +5137,7 @@ function ttStartFlow(opts) {
 
   // --- screen state machine -------------------------------------------------
   function showScreen(name) {
-    if (screen === "pairs" && name !== "pairs" && opts.pairs) opts.pairs.stop();   // leaving Game 1
+    if (screen === "pairs" && name !== "pairs" && opts.pairs) opts.pairs.stop();   // leaving Game 1 (abandons a part-played placement board)
     if (screen === "pop" && name !== "pop" && opts.pop) opts.pop.stop();           // leaving Game 2
     screen = name;
     ["who", "select", "play", "pairs", "pop", "settings", "adult"].forEach(function (k) { if (S[k]) S[k].style.display = (k === name) ? "" : "none"; });
@@ -4726,7 +5164,7 @@ function ttStartFlow(opts) {
   function goSettings() { showScreen("settings"); }   // child settings menu (sound/timer + adult link)
   function goAdult() {                         // host gates this behind the grown-up challenge
     showScreen("adult");
-    if (achPanel) achPanel.render({ N: eng.config.tablesUpTo || 12, ach: tt_getAchievements(eng), scopeText: scopeText() });
+    if (achPanel) achPanel.render({ N: eng.config.tablesUpTo || 12, ach: tt_getAchievements(eng), cells: tt_getMapCells(eng, false), scopeText: scopeText() });
   }
   function scopeText() {
     if (scope.control === "adult") return "adult — " + (scope.strict === "only" ? "only " : "mostly ") + (scope.tables.join(", ") || "none picked");
@@ -4920,27 +5358,44 @@ function ttStartFlow(opts) {
     record: function (d, correct) {
       sessionCtx.nowTs = Date.now();
       tt_markServed(eng, d, sessionCtx);
-      var heldReveal = eng.pendingReveal;
-      tt_recordAnswer(eng, d, correct, TT_PAIRS_RT, profile.age);
-      eng.pendingReveal = heldReveal;
-      persist();
+      recordServed(d, correct);
     },
+    // h18 — engine-directed asks (tables_classc_placement_scratch.md). A Class-C game asks the
+    // engine first for what the drill would have served: tile placement, bridge, introduction.
+    // next(): Pop's tile probe / battery stage / intro — ALREADY SERVED → record with recordServed.
+    next: function (o) { sessionCtx.nowTs = Date.now(); var d = tt_classCNext(eng, sessionCtx, rng, o || {}); persist(); return d; },
+    recordServed: recordServed,
+    // Pairs: the tile-placement board (null = not owed), its close, and leaving it part-way.
+    probeBoard: function () { sessionCtx.nowTs = Date.now(); return tt_probeBoard(eng, sessionCtx, rng); },
+    probeBoardFinish: function () { var r = tt_probeBoardFinish(eng); persist(); return r; },
+    probeBoardAbandon: function () { tt_probeBoardAbandon(eng); },
+    // Pairs: up to `max` intro candidates (nothing changes) → introduce(key) when matched.
+    introCandidates: function (max, tables, force) { return tt_introCandidates(eng, sessionCtx, max, tables, force); },
+    introduce: function (key) { sessionCtx.nowTs = Date.now(); var d = tt_introduceKey(eng, key, sessionCtx, rng); persist(); return d; },
+    // Pairs ÷ stretch: a correct first-half ÷ match on a bridge-ready R4 fact opens its bridge.
+    stretch: function (key) { var r = tt_stretchOpenBridge(eng, key); persist(); return r; },
   };
-
-  // S3 progress map. summary = a session summary (exit) or omitted → the last closed
-  // session (Games-menu button). Highlights mark what THAT session improved/bridged.
-  function showMap(summary) {
-    cpPanel.show(mapData(summary || eng.lastSession), null);
+  // Record an already-served descriptor. pendingReveal is snapshotted and restored (see record).
+  function recordServed(d, correct) {
+    sessionCtx.nowTs = Date.now();
+    var heldReveal = eng.pendingReveal;
+    tt_recordAnswer(eng, d, correct, TT_PAIRS_RT, profile.age);
+    eng.pendingReveal = heldReveal;
+    persist();
   }
 
-  function mapData(summary) {
+  // S3 progress map — shown on leaving a game (only if the child answered something; the
+  // summary decides that) and from the Games-menu button. h18: no per-session highlight.
+  function showMap() {
+    cpPanel.show(mapData(), null);
+  }
+
+  function mapData() {
     var N = eng.config.tablesUpTo || 12, fl = {};
     for (var t = 1; t <= N; t++) { var p = tt_getTableProgress(eng, t); fl[t] = p.total ? Math.round(100 * p.fluent / p.total) : 0; }
-    var ach = tt_getAchievements(eng).facts, best = {};
-    for (var k in ach) best[k] = ach[k].best;          // child map = BEST-EVER stars (h16)
     return {
-      N: N, grid: tt_getMasteryGrid(eng), tableFluency: fl, best: best,
-      improved: (summary && summary.factsImproved) || [], bridged: (summary && summary.bridgesOpened) || []
+      // child map = BEST-EVER (h16); h18: cells = {sym, level} — earned in play only
+      N: N, tableFluency: fl, cells: tt_getMapCells(eng, true)
     };
   }
 
@@ -5186,11 +5641,34 @@ if (typeof module !== "undefined" && module.exports) {
   }
   ttEl("ttAdultLink").onclick = function () { newGateQuestion(); ttEl("ttGateMsg").textContent = ""; ttEl("ttGateIn").value = ""; ttEl("ttGate").style.display = ""; ttEl("ttGateIn").focus(); };
   function submitGate() {
-    if (parseInt(ttEl("ttGateIn").value, 10) === GATE_ANSWER) { ttEl("ttGate").style.display = "none"; syncScopeUI(); flow.goAdult(); }
+    if (parseInt(ttEl("ttGateIn").value, 10) === GATE_ANSWER) { ttEl("ttGate").style.display = "none"; syncScopeUI(); renderDeleteList(); flow.goAdult(); }
     else { ttEl("ttGateIn").value = ""; ttEl("ttGateMsg").textContent = ""; ttEl("ttGateIn").focus(); }  // reject silently — no "try again" prompt
   }
   ttEl("ttGateOk").onclick = submitGate;
   ttEl("ttGateIn").addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); submitGate(); } });
+
+  // --- delete a player (adult settings, behind the gate; h18 Kath) ------------------
+  // Removes the player AND their saved progress (engine + daily pick). Irreversible, so a
+  // confirm names the player. Deleting the player currently in use returns to Who's playing.
+  function renderDeleteList() {
+    var box = ttEl("ttDelPlayers"); box.innerHTML = "";
+    if (!players.length) { box.textContent = "No players."; return; }
+    players.forEach(function (p) {
+      var b = document.createElement("button"); b.type = "button"; b.className = "tt-del-btn";
+      b.textContent = p.avatar + " " + (p.name || "") + "  " + String.fromCharCode(10005);
+      b.onclick = function () { deletePlayer(p); };
+      box.appendChild(b);
+    });
+  }
+  function deletePlayer(p) {
+    if (!window.confirm("Delete " + (p.name || "this player") + " and all their progress? This cannot be undone.")) return;
+    var wasCurrent = p.id === currentPlayerId;
+    if (wasCurrent) currentPlayerId = null;        // BEFORE leaving: the session-close save must not rewrite their data
+    players = players.filter(function (x) { return x.id !== p.id; }); savePlayers();
+    try { localStorage.removeItem("tt_eng_" + p.id); localStorage.removeItem("tt_childpick_" + p.id); } catch (_) {}
+    renderPlayers();
+    if (wasCurrent) flow.goWho(); else renderDeleteList();
+  }
 
   // --- child table picker (in child Settings; only when adult policy = child-picks) --
   // Neutral tiles, no evaluation shown. Applied live as the child's daily `only` pick;
