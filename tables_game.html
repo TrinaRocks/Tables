@@ -74,6 +74,7 @@
   table.tt-map { border-collapse: collapse; }
   table.tt-map td, table.tt-map th { width: 26px; height: 26px; text-align: center; font-size: 12px; border: 1px solid var(--tt-line); }
   table.tt-map th { background: var(--bg); color: var(--ink); font-weight: 600; }
+  .tt-av-taken { opacity: .3; cursor: default; }
   .tt-del-list { display: flex; flex-wrap: wrap; gap: 8px; }
   .tt-del-btn { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 10px; border: 1px solid #c0392b; background: #fff; color: #c0392b; cursor: pointer; font-size: 14px; }
   /* h18 (Kath): ONE hue — cell colours are computed per level by ttMapShade (tt_panels.js):
@@ -1214,11 +1215,10 @@ function tt_factDifficulty(f) {
 // the session rng, and stored in the machine (serialized), so a resumed placement
 // keeps its draw. The ÷ probe is drawn from the leftovers of the pool named in `div`.
 // Absent facts (tablesUpTo < 12) are filtered out before drawing.
-// h18 (Kath): the g0 easy pool also holds gentler facts (2×2, 1×n, 10×10) for younger
-// children. `board` = Pairs' per-tier counts: groups 0–1 only, 3 + 3 each — the hardest group
+// h18 (Kath): `board` = Pairs' per-tier counts: groups 0–1 only, 3 + 3 each — the hardest group
 // is left to normal play (a whole-board placement can't stop early, so 6×9 faced a beginner).
 var TT_PROBE_POOLS = [
-  { easy: ["2x2", "1x7", "1x9", "10x10", "2x3", "2x4", "2x5", "3x10", "4x10", "4x5"], hard: ["2x7", "2x8", "2x9", "5x7", "5x8", "5x9"],
+  { easy: ["2x3", "2x4", "2x5", "3x10", "4x10", "4x5"], hard: ["2x7", "2x8", "2x9", "5x7", "5x8", "5x9"],
     div: ["2x10", "5x10", "5x5", "2x4"], n: { easy: 2, hard: 2 }, board: { easy: 3, hard: 3 } },
   { easy: ["3x3", "3x4", "4x4"], hard: ["3x6", "3x7", "3x8", "3x9", "4x6", "4x7", "4x8", "4x9"],
     div: "hard", n: { easy: 2, hard: 2 }, board: { easy: 3, hard: 3 } },
@@ -4011,7 +4011,12 @@ var TT_PAIRS_ANIMALS = [
   // goat sits in the left third of its frame; rat: frames the right-hand rat
   { src: "images/goat.jpg", alt: "Young goat jumping", credit: "Wilfredor, CC0, via Wikimedia Commons", focal: [0.19, 0.49] },
   { src: "images/rat.jpg", alt: "Young pet rat", credit: "Sarah Fleming (SMercury98), CC BY 2.0, via Wikimedia Commons", focal: [0.94, 0.58] },
-  { src: "images/hedgehog.jpg", alt: "Young hedgehog", credit: "Tony Wills, CC BY-SA 3.0, via Wikimedia Commons", focal: [0.5, 0.40] }   // portrait-ish source, subject above centre
+  { src: "images/hedgehog.jpg", alt: "Young hedgehog", credit: "Tony Wills, CC BY-SA 3.0, via Wikimedia Commons", focal: [0.5, 0.40] },   // portrait-ish source, subject above centre
+  // h18 (Kath): dolphins. Young: in a narrow (portrait) crop the BABIES are the focus, not the
+  // mother — the two calves span x 0.17–0.55, y 0.45–0.80 of the frame.
+  { src: "images/dolphin_young.jpg", alt: "Dolphin mother with two young", credit: "Peter Asprey, CC BY-SA 3.0, via Wikimedia Commons", focal: [0.27, 0.62] },
+  { src: "images/dolphin_wake.jpg", alt: "Dolphin riding a boat's wake", credit: "NASA, public domain, via Wikimedia Commons" },
+  { src: "images/dolphin_leap.jpg", alt: "Leaping dolphin", credit: "Craig Wallace, CC BY-SA 2.0, via Wikimedia Commons" }
 ];
 
 // This project's difficulty groups (TT_GROUPS), NOT the exemplar's level sets.
@@ -4180,8 +4185,15 @@ function ttMakePairs(els) {
     el.classList.add("sel");
     if (!firstPick) { firstPick = { el: el, card: card }; return; }
 
-    busy = true;
     var res = ttPairsResolve(firstPick.card, card);
+    // h18 (Kath): two questions or two answers is a UI slip, not a tables error — just
+    // unselect both, at once, with no "wrong" flash (nothing is recorded either way).
+    if (res && res.kind === "same") {
+      firstPick.el.classList.remove("sel"); el.classList.remove("sel");
+      firstPick = null;
+      return;
+    }
+    busy = true;
     if (res && res.kind === "qa") {
       var entry = entries[res.qIndex], n = entries.length;
       // §2.1: the gate decides; `attempted` is set either way, so a retry after a
@@ -4227,7 +4239,10 @@ function ttMakePairs(els) {
   els.newGame.addEventListener("click", function () { if (live) newGame(); });
 
   return {
-    start: function (c) { ctx = c; live = true; reset(); syncScope(); },
+    // h18 (Kath): entering Pairs deals a board straight away, as if New Game were pressed.
+    // × is the default question type when none has been picked yet (New Game needs one).
+    // In child-picks mode with no table chosen, the usual "Pick a times table first" shows.
+    start: function (c) { ctx = c; live = true; reset(); syncScope(); if (!op) selectOp("x"); newGame(); },
     stop: function () { live = false; reset(); },
   };
 }
@@ -5145,12 +5160,11 @@ function ttStartFlow(opts) {
     if (opts.mounts.checkpoint) opts.mounts.checkpoint.style.display = "none";
   }
   function goWho() { endSession(); showScreen("who"); }
-  // Leaving a game lands on Games WITH the map of what that session did (Kath h16) —
-  // only if the child actually answered something (backing straight out shows nothing).
+  // Leaving a game lands on Games. h18 (Kath): no map by default — it's on the Games-menu
+  // "My map" button (h16 showed it on every exit where the child had answered something).
   function goSelect() {
-    var s = endSession();
+    endSession();
     showScreen("select");
-    if (s && s.asked > 0) showMap(s);
   }
   function goPlay() { showScreen("play"); startSession(); }
   // Game 1 (Pairs): a Class-C game hosted by this controller. It opens a REAL
@@ -5235,7 +5249,8 @@ function ttStartFlow(opts) {
     iPanel.render(view);
     renderTs = now();
     if (current.revealAnswer) {
-      fbPanel.show({ kind: "corrective", text: ttSolvedText(current) });
+      // h18 (Kath): no separate orange solved line when the scaffold shows — its caption IS the answer.
+      if (!opts.scaffold) fbPanel.show({ kind: "corrective", text: ttSolvedText(current) });
       // Engine-initiated reveal — "where scaffolding is required". The revealAnswer gate
       // (onAnswer) enforces the copy; the scaffold teaches.
       // h15: the §7 reveal (the re-ask the engine schedules after ANY wrong answer) is
@@ -5284,10 +5299,13 @@ function ttStartFlow(opts) {
   // forceL3: a WRONG answer gets the caption only, with "Show me why" offered. "Help me
   // out" does NOT — the child has just asked for help, so make them ask twice would be
   // perverse; they get the array straight away.
+  // h18 (Kath): whenever the result is L3 (caption only) — a wrong answer, or "Help me out" on a
+  // typed (keypad) question — "Show me why" is offered, and it always gives the array.
   function enterCorrective(d, forceL3) {
     submitLock = false; correctiveMode = true; clearEntry(); fbPanel.clear(); cancelHint();
-    setButtons(forceL3 ? "why" : "none");
-    opts.scaffold.show(d, workingRungOf(d), armHint, forceL3 ? 3 : null);
+    var level = forceL3 ? 3 : opts.scaffold.levelFor(d, workingRungOf(d));
+    setButtons(level === 3 ? "why" : "none");
+    opts.scaffold.show(d, workingRungOf(d), armHint, level);
   }
   // "Show me why" — the child asks for the array they were not given. Teaching only: it
   // records NOTHING (the wrong answer was already recorded when corrective opened), so it
@@ -5297,7 +5315,8 @@ function ttStartFlow(opts) {
     if (!correctiveMode && !current.revealAnswer) return;   // both copy-to-proceed states
     setButtons("none");                               // asked and answered — nothing left to offer
     cancelHint();
-    opts.scaffold.show(current, workingRungOf(current), armHint, null);
+    var wr = workingRungOf(current);
+    opts.scaffold.show(current, wr, armHint, opts.scaffold.whyLevel(wr));   // h18: always an array
   }
   // Correct: show "correct" and keep the answer + message on screen for 1s, then advance (§ user h10).
   function correctThenAdvance() { qPanel.mark("correct"); fbPanel.show({ kind: "correct", text: "correct" }); setTimeout(nextQuestion, 1000); }
@@ -5312,7 +5331,10 @@ function ttStartFlow(opts) {
     }
     if (submitLock) return;
     var rt = Math.round(now() - renderTs);
-    if (current.revealAnswer && !correct) { fbPanel.show({ kind: "corrective", text: ttSolvedText(current) }); clearEntry(); return; }
+    if (current.revealAnswer && !correct) {          // wrong copy of a shown answer: clear the box; the scaffold caption already shows it
+      if (!opts.scaffold) fbPanel.show({ kind: "corrective", text: ttSolvedText(current) });
+      clearEntry(); return;
+    }
     submitLock = true;
     sessionCtx.nowTs = Date.now();
     tt_recordAnswer(eng, current, correct, rt, profile.age);
@@ -5511,6 +5533,13 @@ function ttMakeScaffoldController(panel) {
                    onDone: onDone,
                    level: levelOverride || ttDrillScaffoldLevel(descriptor, workingRung) });
     },
+    // h18 (Kath): the level a show() without override would pick — tt_flow offers "Show me
+    // why" whenever this is L3 (caption only), so the child can always ask for the array.
+    levelFor: function (descriptor, workingRung) { return ttDrillScaffoldLevel(descriptor, workingRung); },
+    // h18 (Kath): what "Show me why" shows — ALWAYS an array (L1 if the working rung is R0–R2,
+    // else L2), never the L3 caption again. Requested, so the h11 no-array-under-keypad rule
+    // (which is about UNrequested arrays) does not apply.
+    whyLevel: function (workingRung) { return Math.min(2, ttDrillRungToLevel(workingRung)); },
     clear: function () { panel.clear(); },
     hint: function (on) { if (panel.hint) panel.hint(on); },
   };
@@ -5593,18 +5622,26 @@ if (typeof module !== "undefined" && module.exports) {
     var box = ttEl("ttPlayers"); box.innerHTML = "";
     players.forEach(function (p) { box.appendChild(avatarBtn({ e: p.avatar, name: p.name || "" }, function () { pickPlayer(p.id); })); });
   }
+  // h18 (Kath): a player's name IS its avatar's name, so an avatar already in use is greyed
+  // out and refused — no two players with the same name.
+  function avatarTaken(a) { return players.some(function (p) { return p.name === a.name && p.avatar === a.e; }); }
   function createPlayer(a) {
+    if (avatarTaken(a)) return;
     var id = "p" + Date.now();
     players.push({ id: id, avatar: a.e, name: a.name }); savePlayers();
     ttEl("ttAvatarPop").style.display = "none";
     renderPlayers();
     pickPlayer(id);
   }
+  var avatarBtns = [];
   (function buildAvatarGrid() {
     var g = ttEl("ttAvatarGrid");
-    AVATARS.forEach(function (a) { g.appendChild(avatarBtn(a, function () { createPlayer(a); })); });
+    AVATARS.forEach(function (a) { var b = avatarBtn(a, function () { createPlayer(a); }); avatarBtns.push({ a: a, b: b }); g.appendChild(b); });
   })();
-  ttEl("ttCreate").onclick = function () { ttEl("ttAvatarPop").style.display = ""; };
+  function syncAvatarGrid() {
+    avatarBtns.forEach(function (x) { var t = avatarTaken(x.a); x.b.disabled = t; x.b.classList.toggle("tt-av-taken", t); });
+  }
+  ttEl("ttCreate").onclick = function () { syncAvatarGrid(); ttEl("ttAvatarPop").style.display = ""; };
   ttEl("ttAvatarPop").onclick = function (e) { if (e.target === ttEl("ttAvatarPop")) ttEl("ttAvatarPop").style.display = "none"; };
   renderPlayers();
 
