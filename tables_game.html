@@ -25,6 +25,13 @@
      under the notch, so pad by the safe areas, as Pop does. Same breakpoint as the drill/Pairs. */
   @media (orientation: landscape) and (max-height: 600px) {
     #app { max-width: none; padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+    /* h20 (Kath, iPhone): Games as a 2x2 grid — the 6-row column needed ~535px. Title, My map
+       and the message span both columns. The message only takes room when it has text. */
+    #ttSelect { display: grid; grid-template-columns: repeat(2, auto); justify-content: center; align-content: center; gap: 10px 14px; padding: 12px 24px; }
+    #ttSelect .tt-h, #ttSelect #ttMapBtn, #ttSelect .tt-feedback { grid-column: 1 / -1; justify-self: center; text-align: center; }
+    #ttSelect .tt-h { margin: 0; }
+    #ttSelect .tt-choice { padding: 12px 26px; }
+    #ttSelect .tt-feedback { margin: 0; min-height: 0; }
   }
 
   .tt-back { position: absolute; top: 12px; left: calc(12px + env(safe-area-inset-left)); z-index: 5; width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--grey); background: var(--card); color: var(--blue-dark); font-size: 22px; line-height: 1; cursor: pointer; }
@@ -152,6 +159,16 @@
    --------------------------------------------------------------------------- */
 .tt-play { display:flex; flex-direction:column; align-items:center; justify-content:center;
   gap:14px; min-height:var(--tt-vh, 100vh); padding:18px 14px; }
+/* h20 (Kath, iPhone): a tall L1/L2 array pushed the keypad off the bottom (measured: 5×4
+   at 390×660 → keypad ended at 755px). The 52% cap was a guess at "what's left"; now,
+   while a scaffold is up, the play is EXACTLY the screen tall and the slot is the one
+   item that shrinks — ttMountScaffold.fit() (ResizeObserver) scales the card into it.
+   The question→array gap also goes (question margin + an EMPTY feedback line ≈ 86px). */
+.tt-play:has(.tt-scaffold) { height:var(--tt-vh, 100vh); min-height:0; }
+.tt-play:has(.tt-scaffold) > * { flex-shrink:0; }
+.tt-play:has(.tt-scaffold) > .tt-scaffold-slot { flex-shrink:1; }
+.tt-play:has(.tt-scaffold) .tt-question { margin:0; }
+.tt-play:has(.tt-scaffold) .tt-feedback:empty { min-height:0; }
 /* PORTRAIT: cap the array at ~60% of the height so the horizontal tile row stays
    on-screen (no scroll to reach the answers). Small arrays are under the cap and
    untouched; a big fact (e.g. 8×7) is scaled to fit by ttFitScaffold. */
@@ -189,7 +206,8 @@
      card to fit and overflow:hidden clips the untransformed footprint so the
      grid row never grows to the card's natural size. */
   .tt-play:has(.tt-scaffold) .tt-scaffold-slot, .tt-play:has(.tt-keypad) .tt-scaffold-slot {
-    grid-area:array; align-self:stretch; height:100%; width:100%; overflow:hidden; }
+    grid-area:array; align-self:stretch; height:100%; width:100%; overflow:hidden;
+    max-height:none; }   /* h20: the PORTRAIT 52% cap leaked in here — 176px of a 232px cell at 844×340 */
   .tt-play:has(.tt-scaffold) .tt-help, .tt-play:has(.tt-keypad) .tt-help { grid-area:help; }
   .tt-play:has(.tt-scaffold) .tt-input, .tt-play:has(.tt-keypad) .tt-input { grid-area:input; width:auto; height:100%; }
   /* recognition tiles: VERTICAL column filling the full height (short axis). */
@@ -202,6 +220,11 @@
     grid-auto-flow:column; grid-template-columns:none;
     grid-template-rows:repeat(var(--tt-tile-half, 6), minmax(0, 1fr));
     width:auto; height:100%; gap:6px 8px; }
+  /* h20 (Kath, iPhone): a MANY set (10/12 options) with no array is ONE row of 10/12 in
+     landscape, not the portrait two lines — the short axis is the height here. */
+  .tt-play:not(:has(.tt-scaffold)) .tt-tiles.tt-tiles-many {
+    grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:6px; }
+  .tt-play:not(:has(.tt-scaffold)) .tt-tiles.tt-tiles-many .tt-tile { padding:12px 4px; height:auto; }   /* the shell's 68px tile overflowed 667×320 by 3px; ~46px is still a full finger target */
   /* recall keypad: its 3-col pad stays intact, just centred in the full-height column. */
   .tt-play:has(.tt-keypad) .tt-keypad { justify-content:center; height:100%; }
 }
@@ -272,6 +295,11 @@
    42px therefore buys a 12px gap. Scoped by :has() so an L3 caption-only panel,
    which has no ↻, is not needlessly widened. */
 .tt-drill .tt-scaffold:has(.tt-scaffold-replay) .tt-scaffold-caption { padding:0 42px; }
+/* h20 (Kath, iPhone landscape): the ↻ sat mid-panel. The wrap (the ↻'s anchor) is a flex
+   item of the slot, so it STRETCHED to the slot's height; scaled by fit(), its bottom edge
+   — and the ↻ — landed partway up the card (measured 844×340: ↻ at y153–171 on a panel
+   y92–278). Content-height wrap → its bottom-right IS the panel's, at any scale. */
+.tt-drill .tt-scaffold-slot > .tt-scaffold { align-self:flex-start; }
 
 /* Help me out — same colour AND squareness as the keypad tiles (radius 7px, not a pill) */
 .tt-drill .tt-help { border:none; border-radius:7px; padding:12px 20px; font-weight:700; font-family:inherit;
@@ -430,15 +458,16 @@
   .tt-pairs .tt-pairs-bar { grid-area:bar; width:auto; justify-content:flex-end; flex-wrap:nowrap; margin:0; }
   .tt-pairs .tt-pairs-done { grid-area:done; min-height:0; font-size:13px; line-height:13px; text-align:right; }   /* 13px fits under the bar without growing the row (h20: 17px pushed the board down 7px on "All done!") */
   .tt-pairs .tt-pairs-board { grid-area:board; align-self:stretch; height:100%; }
-  /* The board leaves a thin photo strip under the cards for the credit (below). */
-  .tt-pairs .tt-pairs-grid { padding-bottom:13px; }
-  /* h20 (Kath): the credit sits INSIDE the photo, bottom-right, in that strip — never over a
-     card. It SHRINKS but never hides — CC BY / CC BY-SA attribution is a licence condition,
-     not a layout nicety. A small dark backing keeps it legible on any photo (a label, not
-     the full-width banner Kath ruled out at h13). Same area as the board = overlaid on it. */
-  .tt-pairs .tt-pairs-credit { grid-area:board; align-self:end; justify-self:end; z-index:1;
-    font-size:8px; min-height:0; margin:0 6px 2px 0; padding:0 4px; border-radius:3px;
-    background:rgba(0, 0, 0, .55); color:#c8dcef; pointer-events:none; }
+  /* h20 (Kath): the credit is PART OF THE PHOTO — dark text, bottom-right, painted between
+     the photo and the cards, so the cards sit on top of it and it shows as they clear (like
+     the photo itself). No reserved strip: the cards use the full board. It SHRINKS but never
+     hides — CC BY / CC BY-SA attribution is a licence condition, not a layout nicety.
+     Layering: the board is not a stacking context, so photo (0) < credit (1) < cards (2)
+     all stack together. Same grid area as the board = overlaid on it. */
+  .tt-pairs .tt-pairs-img { z-index:0; }
+  .tt-pairs .tt-pairs-grid { z-index:2; }
+  .tt-pairs .tt-pairs-credit { grid-area:board; align-self:end; justify-self:end; position:relative; z-index:1;
+    font-size:8px; min-height:0; margin:0 8px 3px 0; color:#1a1a1a; pointer-events:none; }
 }
 
 /* ============================================================================
@@ -631,9 +660,11 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   /* play: board left (full height), controls right */
   .tt-practice .tt-pr-play { height:calc(var(--tt-vh, 100vh) - 16px); display:grid; gap:4px 18px;
     grid-template-columns:minmax(0, 1fr) auto; grid-template-rows:auto minmax(0, 1fr) auto;
-    grid-template-areas:"head cap" "board pad" "board btn"; align-items:center; justify-items:center; }
-  .tt-practice .tt-pr-head { grid-area:head; line-height:44px; }
-  .tt-practice .tt-pr-board { grid-area:board; align-self:stretch; height:100%; }
+    grid-template-areas:"board cap" "board pad" "board btn"; align-items:center; justify-items:center; }
+  /* h20 (Kath): no "3× table" title in landscape — the board takes the full height. Its
+     left 48px is the back button's column (a 12×12 board on a 667px phone reached x≈31). */
+  .tt-practice .tt-pr-head { display:none; }
+  .tt-practice .tt-pr-board { grid-area:board; align-self:stretch; height:100%; padding-left:48px; }
   .tt-practice .tt-pr-help-caption { grid-area:cap; }
   .tt-practice .tt-pr-pad { grid-area:pad; width:240px; }
   .tt-practice .tt-key { height:40px; }
@@ -3684,6 +3715,11 @@ function ttMountFeedback(el) {
 // The corrective/copy-to-proceed GATE lives in tt_flow; this only renders + replays.
 function ttMountScaffold(el) {
   var handle = null, wrap = null, onResize = null;
+  // h20: the slot's box also changes WITHOUT a window resize (portrait flex-shrink: the
+  // "Show me why" button hiding, feedback text arriving) — watch the slot itself.
+  // fit() only sets a transform, which never changes the slot's box, so no loop.
+  var slotObserver = (typeof ResizeObserver !== "undefined") ? new ResizeObserver(function () { fit(); }) : null;
+  if (slotObserver) slotObserver.observe(el);
   // Fit-to-space (h12, Kath's "cap size, shrink beyond"): the pure generator
   // emits a full-size card; the SKIN owns appearance, so fitting the card to its
   // slot is a layout concern and lives here, not in tt_scaffold.js. When the slot
@@ -5512,6 +5548,8 @@ function ttMakePractice(el) {
     var L = ttPracticeLevel(levelId);
     var n = qs.length || 1, cols = table || 1;
     var w = boardEl.clientWidth || 320, h = boardEl.clientHeight || 360;
+    // h20: landscape gives the board a back-button gutter (padding-left) — clientWidth includes it
+    if (typeof getComputedStyle !== "undefined") w -= parseFloat(getComputedStyle(boardEl).paddingLeft) || 0;
     if (L.array) {
       // "12 × 12 = [144]" at 0.68·cell font ≈ 4.5 cells wide; 30/14 = dot-panel padding + gap
       cell = Math.max(12, Math.min(40, Math.floor(Math.min((w - 30) / (cols + 4.5), (h - 14) / n))));
