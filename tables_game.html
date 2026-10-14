@@ -420,9 +420,25 @@
   .tt-pairs .tt-pairs-setup, .tt-pairs .tt-pairs-bar { max-width:none; }
   .tt-pairs .tt-pairs-board { max-width:none; }
   .tt-pairs .tt-chip { height:26px; font-size:13px; }
-  /* The credit SHRINKS but never hides — CC BY / CC BY-SA attribution is a
-     licence condition, not a layout nicety. */
-  .tt-pairs .tt-pairs-credit { font-size:8px; min-height:9px; }
+  /* h20 (Kath, iPhone): ONE control row — setup on the left, New Game + score (and the
+     "All done!" line under them) on the right; the board takes every other pixel. Grid,
+     not flex: the setup can be two rows tall (tables picker) while the bar is one. */
+  .tt-pairs { display:grid; grid-template-columns:minmax(0, 1fr) auto;
+    grid-template-rows:auto auto minmax(0, 1fr); align-items:start; column-gap:12px;
+    grid-template-areas:"setup bar" "setup done" "board board"; }
+  .tt-pairs .tt-pairs-setup { grid-area:setup; }
+  .tt-pairs .tt-pairs-bar { grid-area:bar; width:auto; justify-content:flex-end; flex-wrap:nowrap; margin:0; }
+  .tt-pairs .tt-pairs-done { grid-area:done; min-height:0; font-size:13px; line-height:13px; text-align:right; }   /* 13px fits under the bar without growing the row (h20: 17px pushed the board down 7px on "All done!") */
+  .tt-pairs .tt-pairs-board { grid-area:board; align-self:stretch; height:100%; }
+  /* The board leaves a thin photo strip under the cards for the credit (below). */
+  .tt-pairs .tt-pairs-grid { padding-bottom:13px; }
+  /* h20 (Kath): the credit sits INSIDE the photo, bottom-right, in that strip — never over a
+     card. It SHRINKS but never hides — CC BY / CC BY-SA attribution is a licence condition,
+     not a layout nicety. A small dark backing keeps it legible on any photo (a label, not
+     the full-width banner Kath ruled out at h13). Same area as the board = overlaid on it. */
+  .tt-pairs .tt-pairs-credit { grid-area:board; align-self:end; justify-self:end; z-index:1;
+    font-size:8px; min-height:0; margin:0 6px 2px 0; padding:0 4px; border-radius:3px;
+    background:rgba(0, 0, 0, .55); color:#c8dcef; pointer-events:none; }
 }
 
 /* ============================================================================
@@ -4128,8 +4144,11 @@ function ttPairsDeal(entries, rng) {
   return ttPairsShuffle(cards, rng);
 }
 
-function ttPairsGrid(cardCount) {
-  return { cols: TT_PAIRS_COLS, rows: Math.ceil(cardCount / TT_PAIRS_COLS) };
+// h20 (Kath, iPhone): a phone in landscape gets the TRANSPOSED board (4 rows of 6, not
+// 6 rows of 4) — the short axis is the height there.
+function ttPairsGrid(cardCount, landscape) {
+  var long = Math.ceil(cardCount / TT_PAIRS_COLS);
+  return landscape ? { cols: long, rows: TT_PAIRS_COLS } : { cols: TT_PAIRS_COLS, rows: long };
 }
 
 // What a tap-pair means. Match is by answer VALUE, never card identity (§5.4):
@@ -4355,6 +4374,18 @@ function ttMakePairs(els) {
     deal();
   }
 
+  // Board shape follows the orientation, live (turning the phone mid-board re-flows the same
+  // cards). Breakpoint = tt_skin_pairs.css's landscape query.
+  var cardCount = 0;
+  var LANDSCAPE = (typeof window !== "undefined" && window.matchMedia) ? window.matchMedia("(orientation: landscape) and (max-height: 560px)") : null;
+  function shapeGrid() {
+    if (!cardCount) return;
+    var g = ttPairsGrid(cardCount, !!(LANDSCAPE && LANDSCAPE.matches));
+    els.grid.style.gridTemplateColumns = "repeat(" + g.cols + ", minmax(0, 1fr))";
+    els.grid.style.gridTemplateRows = "repeat(" + g.rows + ", minmax(0, 1fr))";
+  }
+  if (LANDSCAPE) { if (LANDSCAPE.addEventListener) LANDSCAPE.addEventListener("change", shapeGrid); else if (LANDSCAPE.addListener) LANDSCAPE.addListener(shapeGrid); }
+
   function deal() {
     firstPick = null; busy = false; matched = 0;
     els.done.textContent = "";
@@ -4366,10 +4397,10 @@ function ttMakePairs(els) {
       ? (animal.focal[0] * 100) + "% " + (animal.focal[1] * 100) + "%" : "";
     els.credit.textContent = "Photo: " + animal.alt + " — " + animal.credit;
 
-    var cards = ttPairsDeal(entries), g = ttPairsGrid(cards.length);
+    var cards = ttPairsDeal(entries);
     els.grid.innerHTML = "";
-    els.grid.style.gridTemplateColumns = "repeat(" + g.cols + ", minmax(0, 1fr))";
-    els.grid.style.gridTemplateRows = "repeat(" + g.rows + ", minmax(0, 1fr))";
+    cardCount = cards.length;
+    shapeGrid();
     cards.forEach(function (card) {
       var el = document.createElement("div");
       el.className = "tt-pairs-card tt-pairs-" + card.kind;
@@ -4432,6 +4463,7 @@ function ttMakePairs(els) {
   function reset() {
     closeProbe(false);                                 // leaving mid probe board: the placement stays owed
     entries = []; firstPick = null; busy = false; matched = 0;
+    cardCount = 0;
     els.grid.innerHTML = ""; els.img.removeAttribute("src"); els.img.alt = ""; els.img.style.objectPosition = "";
     els.credit.textContent = ""; els.done.textContent = ""; hint("");
     status();
