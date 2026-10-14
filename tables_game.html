@@ -15,15 +15,26 @@
   html, body { margin: 0; height: 100%; font-family: 'Trebuchet MS', sans-serif; background: var(--bg); color: var(--ink); }
   button, input, select, textarea { font-family: inherit; }   /* native controls don't inherit font by default */
   #app { max-width: 480px; margin: 0 auto; min-height: 100%; position: relative; }
+  /* h20 (iPhone pass): screen height = the VISIBLE viewport. iOS Safari's 100vh is the height with
+     its toolbars hidden, so every 100vh screen ran taller than the screen (Kath: "slightly too high").
+     dvh tracks the toolbars; 100vh stays as the fallback. Skins read var(--tt-vh, 100vh). */
+  :root { --tt-vh: 100vh; }
+  @supports (height: 100dvh) { :root { --tt-vh: 100dvh; } }
+  /* h20: phone landscape uses the full width (was capped at the 480px portrait column — the
+     forced-decision "landscape wastes half the screen", h13). viewport-fit=cover lets content run
+     under the notch, so pad by the safe areas, as Pop does. Same breakpoint as the drill/Pairs. */
+  @media (orientation: landscape) and (max-height: 600px) {
+    #app { max-width: none; padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  }
 
-  .tt-back { position: absolute; top: 12px; left: 12px; z-index: 5; width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--grey); background: var(--card); color: var(--blue-dark); font-size: 22px; line-height: 1; cursor: pointer; }
+  .tt-back { position: absolute; top: 12px; left: calc(12px + env(safe-area-inset-left)); z-index: 5; width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--grey); background: var(--card); color: var(--blue-dark); font-size: 22px; line-height: 1; cursor: pointer; }
   .tt-back:active { background: #e3eefc; }
   /* h20: who's playing — tucked under back, inside its right edge (a full-size badge beside it
      covered Pairs' legend, Pop's score and the adult heading). Every screen but Who's playing. */
-  .tt-player-badge { position: absolute; top: 38px; left: 30px; z-index: 6; width: 26px; height: 26px; border-radius: 13px; border: 1px solid var(--grey); background: var(--card); font-size: 16px; line-height: 26px; text-align: center; visibility: hidden; pointer-events: none; }
+  .tt-player-badge { position: absolute; top: 38px; left: calc(30px + env(safe-area-inset-left)); z-index: 6; width: 26px; height: 26px; border-radius: 13px; border: 1px solid var(--grey); background: var(--card); font-size: 16px; line-height: 26px; text-align: center; visibility: hidden; pointer-events: none; }
   .tt-gear { position: absolute; top: 12px; right: 12px; z-index: 5; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--grey); background: var(--card); font-size: 22px; cursor: pointer; }
 
-  .tt-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; }
+  .tt-screen { min-height: var(--tt-vh, 100vh); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; }
   .tt-h { font-size: 26px; font-weight: 700; margin: 0 0 6px; color: var(--blue-dark); }
   .tt-choice { font-size: 22px; font-weight: 600; padding: 16px 26px; border-radius: 16px; border: 1px solid var(--grey); background: var(--card); color: var(--ink); cursor: pointer; min-width: 260px; }
   .tt-choice:active { background: #e3eefc; }
@@ -140,12 +151,12 @@
    so a tall fact never overflows; the tiles own the short axis either way.
    --------------------------------------------------------------------------- */
 .tt-play { display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:14px; min-height:100vh; padding:18px 14px; }
+  gap:14px; min-height:var(--tt-vh, 100vh); padding:18px 14px; }
 /* PORTRAIT: cap the array at ~60% of the height so the horizontal tile row stays
    on-screen (no scroll to reach the answers). Small arrays are under the cap and
    untouched; a big fact (e.g. 8×7) is scaled to fit by ttFitScaffold. */
 .tt-play .tt-scaffold-slot { display:flex; justify-content:center; min-height:0; min-width:0;
-  max-height:52vh; overflow:hidden; }
+  max-height:calc(var(--tt-vh, 100vh) * .52); overflow:hidden; }
 /* PORTRAIT: tiles horizontal, full width under the array. NB the input MOUNT is
    itself `.tt-input.tt-tiles` (tt_panels renderTiles sets el.className) — the
    tile buttons are its direct children, so `.tt-tiles` IS the flex row. */
@@ -169,7 +180,7 @@
        array row — otherwise a tall card grows the grid and the fit-helper sees
        the grown cell as "available" and never shrinks. overflow:hidden keeps
        the whole play within one screen (no scroll in landscape). */
-    height:100vh; overflow:hidden;
+    height:var(--tt-vh, 100vh); overflow:hidden;
     grid-template-columns:1fr auto; grid-template-rows:auto auto minmax(0,1fr) auto;
     grid-template-areas:"question input" "feedback input" "array input" "help input"; }
   .tt-play:has(.tt-scaffold) .tt-question, .tt-play:has(.tt-keypad) .tt-question { grid-area:question; margin:0; }
@@ -334,7 +345,7 @@
    shell's .tt-screen centres its children vertically; Pairs needs the board to
    FILL, so the layout is re-stated here rather than inherited. */
 .tt-pairs { display:flex; flex-direction:column; align-items:center; justify-content:flex-start;
-  gap:6px; height:100vh; min-height:0; padding:8px 10px 6px; overflow:hidden;
+  gap:6px; height:var(--tt-vh, 100vh); min-height:0; padding:8px 10px 6px; overflow:hidden;
   font-family:'Trebuchet MS', sans-serif; color:#d0eeff; }
 
 .tt-pairs .tt-pairs-title { font-size:20px; font-weight:700; color:#d0eeff; margin:0; flex:0 0 auto; }
@@ -544,7 +555,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 
 /* --- play ----------------------------------------------------------------- */
 .tt-practice .tt-pr-play { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;
-  height:calc(100vh - 78px); }
+  height:calc(var(--tt-vh, 100vh) - 78px); }
 .tt-practice .tt-pr-head { font-size:20px; font-weight:700; }
 .tt-practice .tt-pr-board { flex:1 1 auto; min-height:0; width:100%; display:flex; justify-content:center;
   align-items:flex-start; gap:10px; overflow:hidden; }
@@ -582,6 +593,37 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 .tt-practice .tt-pr-earned { font-weight:700; color:#40ffcc; }
 .tt-practice .tt-pr-again { font-weight:700; font-size:20px; }
 .tt-practice .tt-pr-yesno { display:flex; gap:14px; }
+
+/* --- phone landscape (h20, iPhone pass) -------------------------------------
+   The portrait column (head / board / caption / keypad / help) needs ~330px of fixed
+   rows, so on a ~340px-high phone the board — the only row allowed to shrink — got
+   0px and only "3× table" showed (measured h20). Here the board takes the left and
+   the full height; caption, keypad and help stack on the right. The back button
+   shares the title row (Kath h20: it needs no row of its own) — titles are centred,
+   so the 64px top band portrait reserves for it goes. Same breakpoint as the shell. */
+@media (orientation: landscape) and (max-height: 600px) {
+  .tt-practice { padding:8px 14px; }
+  /* pick: tables in ONE row, levels in one row — minimum height */
+  .tt-practice .tt-pr-pick { max-width:none; gap:8px; }
+  .tt-practice .tt-pr-title { font-size:24px; line-height:44px; }      /* level with the 44px back button */
+  .tt-practice .tt-pr-legend { margin-top:0; }
+  .tt-practice .tt-pr-chips { flex-wrap:nowrap; }
+  /* 12 chips at 46px+8px gap = 640px: no room on a 667px phone, so 42px here */
+  .tt-practice .tt-pr-chips .tt-chip { min-width:42px; height:42px; }
+  .tt-practice .tt-pr-levels { flex-direction:row; max-width:none; width:auto; }
+  .tt-practice .tt-pr-go { margin-top:2px; }
+  /* play: board left (full height), controls right */
+  .tt-practice .tt-pr-play { height:calc(var(--tt-vh, 100vh) - 16px); display:grid; gap:4px 18px;
+    grid-template-columns:minmax(0, 1fr) auto; grid-template-rows:auto minmax(0, 1fr) auto;
+    grid-template-areas:"head cap" "board pad" "board btn"; align-items:center; justify-items:center; }
+  .tt-practice .tt-pr-head { grid-area:head; line-height:44px; }
+  .tt-practice .tt-pr-board { grid-area:board; align-self:stretch; height:100%; }
+  .tt-practice .tt-pr-help-caption { grid-area:cap; }
+  .tt-practice .tt-pr-pad { grid-area:pad; width:240px; }
+  .tt-practice .tt-key { height:40px; }
+  .tt-practice .tt-pr-helpbtn { grid-area:btn; }
+  .tt-practice .tt-pr-result { grid-area:pad; }                        /* takes the keypad's place, as in portrait */
+}
 /* ==== CSS tt_skin_practice.css [END] ==== */
 </style>
 </head>
