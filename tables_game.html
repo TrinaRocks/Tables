@@ -18,6 +18,9 @@
 
   .tt-back { position: absolute; top: 12px; left: 12px; z-index: 5; width: 44px; height: 44px; border-radius: 22px; border: 1px solid var(--grey); background: var(--card); color: var(--blue-dark); font-size: 22px; line-height: 1; cursor: pointer; }
   .tt-back:active { background: #e3eefc; }
+  /* h20: who's playing — tucked under back, inside its right edge (a full-size badge beside it
+     covered Pairs' legend, Pop's score and the adult heading). Every screen but Who's playing. */
+  .tt-player-badge { position: absolute; top: 38px; left: 30px; z-index: 6; width: 26px; height: 26px; border-radius: 13px; border: 1px solid var(--grey); background: var(--card); font-size: 16px; line-height: 26px; text-align: center; visibility: hidden; pointer-events: none; }
   .tt-gear { position: absolute; top: 12px; right: 12px; z-index: 5; width: 44px; height: 44px; border-radius: 12px; border: 1px solid var(--grey); background: var(--card); font-size: 22px; cursor: pointer; }
 
   .tt-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px; }
@@ -99,7 +102,7 @@
   html, body { background: #0a1a3a; color: #d0eeff; }          /* Plain navy page + light text */
   .tt-h { color: #d0eeff; }
   /* typical buttons + inline fields: paler navy than the page = the game-3 tile colour */
-  .tt-choice, .tt-subtle, .tt-avatar-btn, .tt-back, .tt-gear, .tt-chip, .tt-group, .tt-field {
+  .tt-choice, .tt-subtle, .tt-avatar-btn, .tt-back, .tt-player-badge, .tt-gear, .tt-chip, .tt-group, .tt-field {
     background: #0e3a6a; color: #d0eeff; border-color: #1a5090; }
   .tt-choice, .tt-subtle { color: #d0eeff; }
   .tt-label, .tt-av-n, .tt-field label { color: #d0eeff; }
@@ -438,7 +441,7 @@
   --pop-ink:#0b0b0b; --pop-good:#40ffa0; --pop-goodBg:#0f5a35; --pop-floor:120px; }
 /* The shell's back button lives in the centred 480px #app; while Pop is up it pins
    to the viewport corner instead (the scene is full-width). */
-body.tt-pop-on .tt-back { position:fixed; }
+body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 .tt-pop .tt-pop-cave { position:absolute; inset:0; width:100%; height:100%; z-index:0; }
 
 .tt-pop .tt-pop-top { display:flex; align-items:center; gap:12px; padding:6px 14px 6px 66px; height:56px;
@@ -513,10 +516,79 @@ body.tt-pop-on .tt-back { position:fixed; }
 .tt-pop .tt-pop-empty { position:relative; z-index:6; text-align:center; padding:40px 20px; font-size:18px; }
 /* ==== CSS tt_skin_pop.css [END] ==== */
 </style>
+<style>
+/* ==== CSS tt_skin_practice.css [BEGIN] ==== */
+/* ============================================================================
+   tt_skin_practice.css — Game 4 "Practice" presentation. Scoped under .tt-practice.
+   Colours follow the Plain/drill skin: navy page, #0e3a6a keys on #d0eeff, question
+   green #40ffcc, white scaffold panel with black dots and orange row loops (game3 §3).
+   --tt-pr-cell is set by the player's fit(): one array cell = one question line, so
+   each question sits level with its row.
+   ============================================================================ */
+
+.tt-practice { justify-content:flex-start; padding:64px 14px 14px; gap:10px; color:#d0eeff; }
+
+/* --- pick ----------------------------------------------------------------- */
+.tt-practice .tt-pr-pick { display:flex; flex-direction:column; align-items:center; gap:12px; width:100%; max-width:420px; }
+.tt-practice .tt-pr-title { font-size:28px; font-weight:700; color:#d0eeff; }
+.tt-practice .tt-pr-legend { font-size:18px; font-weight:700; margin-top:6px; }
+.tt-practice .tt-pr-chips { display:flex; flex-wrap:wrap; justify-content:center; gap:8px; }
+.tt-practice .tt-pr-chips .tt-chip { min-width:46px; height:46px; border-radius:23px; font-size:20px; }
+.tt-practice .tt-pr-levels { display:flex; flex-direction:column; gap:8px; width:100%; max-width:300px; }
+.tt-practice .tt-pr-level { font-size:20px; font-weight:600; padding:12px; border-radius:12px; border:1px solid #1a5090;
+  background:#0e3a6a; color:#d0eeff; cursor:pointer; font-family:inherit; }
+.tt-practice .tt-pr-level.sel { background:#00b8d4; color:#002030; border-color:#00b8d4; }
+.tt-practice .tt-pr-go { font-size:22px; font-weight:700; padding:12px 34px; border-radius:14px; border:none;
+  background:#40ffcc; color:#002030; cursor:pointer; font-family:inherit; margin-top:8px; }
+.tt-practice .tt-pr-go.tt-pr-no { background:#0e3a6a; color:#d0eeff; }
+
+/* --- play ----------------------------------------------------------------- */
+.tt-practice .tt-pr-play { display:flex; flex-direction:column; align-items:center; gap:8px; width:100%;
+  height:calc(100vh - 78px); }
+.tt-practice .tt-pr-head { font-size:20px; font-weight:700; }
+.tt-practice .tt-pr-board { flex:1 1 auto; min-height:0; width:100%; display:flex; justify-content:center;
+  align-items:flex-start; gap:10px; overflow:hidden; }
+.tt-practice .tt-pr-dots { background:#fff; border-radius:12px; padding:6px 8px; display:flex; flex-direction:column; }
+.tt-practice .tt-pr-row-svg { display:block; }
+.tt-practice .tt-pr-qs { display:flex; flex-direction:column; padding:6px 0; }
+.tt-practice .tt-pr-q { height:var(--tt-pr-cell, 28px); line-height:var(--tt-pr-cell, 28px); white-space:nowrap;
+  font-size:calc(var(--tt-pr-cell, 28px) * 0.68); font-weight:700; color:#40ffcc; display:flex; align-items:center; gap:.2em; }
+.tt-practice .tt-pr-q-done { color:#d0eeff; }
+.tt-practice .tt-pr-box { display:inline-flex; align-items:center; justify-content:center; min-width:2em;
+  height:calc(var(--tt-pr-cell, 28px) * 0.92); padding:0 .2em; color:#fff; background:#0e2040;
+  border:2px solid #1a5090; border-radius:10px; transition:background .15s, border-color .15s; }
+.tt-practice .tt-pr-box.ok { border-color:#40ffcc; color:#40ffcc; background:#0d4a3a; }
+.tt-practice .tt-pr-box.bad { border-color:#ffb347; background:#5a2430; }      /* as a wrong Pairs card */
+
+/* level c: one question, centred and large */
+.tt-practice .tt-pr-solo .tt-pr-board { align-items:center; }
+.tt-practice .tt-pr-q-solo { font-size:calc(var(--tt-pr-cell, 40px) * 0.9); height:auto; line-height:1.2; }
+.tt-practice .tt-pr-list { display:flex; flex-direction:column; align-items:center; }
+
+.tt-practice .tt-pr-help-caption { min-height:34px; font-size:28px; font-weight:700; color:#ffb347; }
+.tt-practice .tt-pr-pad { width:100%; max-width:300px; flex:0 0 auto; }
+.tt-practice .tt-pad { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; }
+.tt-practice .tt-key { height:46px; font-size:24px; border-radius:7px; border:none; background:#0e3a6a; color:#d0eeff; cursor:pointer; font-family:inherit; }
+.tt-practice .tt-key:active { background:#2060b0; }
+.tt-practice .tt-pr-helpbtn { border:none; border-radius:7px; padding:10px 20px; font-weight:700; font-size:16px;
+  background:#0e3a6a; color:#d0eeff; cursor:pointer; font-family:inherit; flex:0 0 auto; }
+.tt-practice .tt-pr-summary .tt-pr-pad,
+.tt-practice .tt-pr-summary .tt-pr-helpbtn,
+.tt-practice .tt-pr-summary .tt-pr-help-caption { display:none; }   /* the points panel takes their place */
+
+/* --- result --------------------------------------------------------------- */
+.tt-practice .tt-pr-result { flex:0 0 auto; background:#0e3a6a; border-radius:16px; padding:14px 18px; max-width:360px;
+  display:flex; flex-direction:column; align-items:center; gap:8px; text-align:center; font-size:18px; }
+.tt-practice .tt-pr-earned { font-weight:700; color:#40ffcc; }
+.tt-practice .tt-pr-again { font-weight:700; font-size:20px; }
+.tt-practice .tt-pr-yesno { display:flex; gap:14px; }
+/* ==== CSS tt_skin_practice.css [END] ==== */
+</style>
 </head>
 <body>
 <div id="app">
   <button id="ttBack" class="tt-back" type="button" aria-label="back">&#8249;</button>
+  <div id="ttPlayerBadge" class="tt-player-badge" aria-hidden="true"></div>
 
   <section id="ttWho" class="tt-screen">
     <h1 class="tt-h">Who's playing?</h1>
@@ -530,7 +602,7 @@ body.tt-pop-on .tt-back { position:fixed; }
     <button id="ttPairsBtn" class="tt-choice tt-game" type="button" data-game="1">Pairs</button>
     <button id="ttPopBtn" class="tt-choice tt-game" type="button" data-game="2">Pop</button>
     <button id="ttDrill" class="tt-choice tt-game" type="button" data-game="3">Quiz</button>
-    <button class="tt-choice tt-game" type="button" data-game="4">game 4</button>
+    <button id="ttPracticeBtn" class="tt-choice tt-game" type="button" data-game="4">Practice</button>
     <button id="ttMapBtn" class="tt-choice" type="button">My map</button>
     <div id="ttGamesMsg" class="tt-feedback"></div>
   </section>
@@ -552,6 +624,11 @@ body.tt-pop-on .tt-back { position:fixed; }
   <section id="ttAdult" class="tt-screen" style="display:none">
     <h1 class="tt-h">Adult settings</h1>
     <div id="ttAdultProgress"></div>
+    <div class="tt-field">
+      <div class="tt-label">Times tables up to</div>
+      <label><input type="radio" name="range" value="10" checked> 10</label>
+      <label><input type="radio" name="range" value="12"> 12</label>
+    </div>
     <div class="tt-field">
       <div class="tt-label">Who chooses the tables?</div>
       <label><input type="radio" name="scope" value="game" checked> The game chooses (recommended)</label>
@@ -621,6 +698,10 @@ body.tt-pop-on .tt-back { position:fixed; }
   <!-- GAME 2 · Pop (Class C chillout). Full-viewport cave scene; the skin builds
        its own DOM inside this section. tables_game2_pop_design.md -->
   <section id="ttPop" class="tt-screen tt-pop" style="display:none"></section>
+
+  <!-- GAME 4 · Practice (teaching — records nothing). The skin builds its own DOM.
+       tables_game4_practice_design.md -->
+  <section id="ttPractice" class="tt-screen tt-practice" style="display:none"></section>
 
   <div id="ttGate" class="tt-overlay" style="display:none">
     <div class="tt-gate-card">
@@ -857,6 +938,77 @@ function tt_tableStarted(eng, t) {
   return false;
 }
 
+// --- the table being introduced now (Game 4 Practice default, h19 Kath) --------
+// The table whose intro sweep CLAIMS the next unseen fact in intro order (5×9 next → the 5s).
+// Read-only; null when everything is introduced (or no claim map).
+function tt_introFrontierTable(eng) {
+  var claim = eng._claimOf;
+  if (!claim) return null;
+  for (var i = 0; i < eng.introOrder.length; i++) {
+    var k = eng.introOrder[i];
+    if (eng.facts[k] && !eng.facts[k].seen) return claim[k] || null;
+  }
+  return null;
+}
+
+// --- range: tables up to 10 / up to 12, per player (h19 Kath; tables_game4_practice_design.md §B) ---
+// Facts outside the range are moved to eng.dormantFacts — HIDDEN, never deleted: switching back
+// restores them as they were. Everything in the engine iterates eng.facts, so a dormant fact is
+// out of every pool, count, map and accessor without any per-consumer filtering. What must be
+// purged by hand is IN-FLIGHT state that names a fact by key (queues, reveal, battery, unfinished
+// placement machines) and the anomaly baseline (a reinstate copies it back into eng.facts).
+// Call between sessions (the shell does: adult settings / Games screen).
+// byAdult: an adult chose it — from then on the auto-upgrade never fires (Kath: adult overrides).
+// Returns true if the range changed.
+function tt_setRange(eng, N, byAdult) {
+  N = N === 12 ? 12 : 10;
+  if (byAdult) eng.rangeAdultSet = true;
+  if (eng.config.tablesUpTo === N) return false;
+  var dormant = eng.dormantFacts || (eng.dormantFacts = {});
+  var claimOf = {};
+  eng.config.tablesUpTo = N;
+  eng.introOrder = tt_buildIntroOrder(N, claimOf);
+  eng._claimOf = claimOf;
+  var pos = {};
+  eng.introOrder.forEach(function (k, i) { pos[k] = i; });
+  for (var k in eng.facts) if (!(k in pos)) { dormant[k] = eng.facts[k]; delete eng.facts[k]; }
+  var added = [];
+  eng.introOrder.forEach(function (k, i) {
+    if (!eng.facts[k]) {
+      if (dormant[k]) { eng.facts[k] = dormant[k]; delete dormant[k]; }
+      else { var p = k.split("x"); eng.facts[k] = tt_newFact(+p[0], +p[1], i); }
+      added.push(k);
+    }
+    eng.facts[k].introIdx = i;           // intro order changed → re-index (tie-breaks, Pairs order)
+  });
+  function live(key) { return !!eng.facts[key]; }
+  if (eng.pendingReveal && !live(eng.pendingReveal)) eng.pendingReveal = null;
+  eng.reaskQueue = eng.reaskQueue.filter(function (r) { return live(r.key); });
+  eng.spacedReasks = eng.spacedReasks.filter(function (r) { return live(r.key); });
+  eng.bridgeReask = eng.bridgeReask.filter(function (r) { return live(r.key); });
+  eng.recentServed = eng.recentServed.filter(function (r) { return live(r.key); });
+  if (eng.battery && !live(eng.battery.key)) eng.battery = null;
+  // Placement machines draw their probes for the range they were built in: an unfinished one restarts.
+  if (eng.probe && !eng.probe.done) eng.probe = tt_newProbeMachine(N);
+  if (eng.tileProbe && !eng.tileProbe.done) eng.tileProbe = null;   // rebuilt on demand (tt_classCNext / tt_probeBoard)
+  eng.reentry = null;                    // rebuilt on the next genuine absence
+  if (eng.goodSnapshot) {
+    for (var sk in eng.goodSnapshot) if (!live(sk)) delete eng.goodSnapshot[sk];
+    added.forEach(function (ak) { eng.goodSnapshot[ak] = JSON.parse(JSON.stringify(eng.facts[ak])); });
+  }
+  return true;
+}
+
+// Auto-upgrade 10 → 12, ONCE (Kath h19): when every fact up to 10 has reached keypad × (R6).
+// Never after an adult has chosen a range; never twice. Returns true if it switched now.
+var TT_RANGE_AUTO_RUNG = 6;
+function tt_maybeAutoRange(eng) {
+  if (eng.rangeAdultSet || eng.rangeAutoDone || eng.config.tablesUpTo !== 10) return false;
+  for (var k in eng.facts) if (eng.facts[k].confirmedRung < TT_RANGE_AUTO_RUNG) return false;
+  eng.rangeAutoDone = true;
+  return tt_setRange(eng, 12, false);
+}
+
 function tt_groupOfTable(t) {
   for (var g = 0; g < TT_GROUPS.length; g++)
     if (TT_GROUPS[g].indexOf(t) >= 0) return g;
@@ -883,7 +1035,10 @@ function tt_newEngine(config) {
       setpoint: config.setpoint || TT_C.SETPOINT,
       bridgeCleanPasses: 0,    // adaptive-fade counter: clean+fast gate passes (§6)
     },
-    facts: {},                 // key -> fact record (SPEC §2)
+    facts: {},                 // key -> fact record (SPEC §2) — the facts IN RANGE
+    dormantFacts: {},          // h19: facts outside the range (12 → 10), hidden not deleted — tt_setRange
+    rangeAdultSet: false,      // h19: an adult has chosen the range → no auto-upgrade, ever
+    rangeAutoDone: false,      // h19: the one-time 10 → 12 auto-upgrade has fired (tt_maybeAutoRange)
     introOrder: tt_buildIntroOrder(tablesUpTo, claimOf),
     qCount: 0,                 // question counter (within-session recency clock)
     correctStreak: 0,          // consecutive non-ceremonial correct (panel display)
@@ -2839,7 +2994,8 @@ if (typeof module !== "undefined" && module.exports) {
     tt_phase: tt_phase, tt_fastBar: tt_fastBar, tt_describe: tt_describe, tt_buildAsk: tt_buildAsk, tt_tableWindow: tt_tableWindow,
     tt_bothOrders: tt_bothOrders, tt_bothDivDirs: tt_bothDivDirs, tt_bothMissing: tt_bothMissing,
     tt_factDifficulty: tt_factDifficulty, tt_introGroupOfFact: tt_introGroupOfFact,
-    tt_tableStarted: tt_tableStarted,
+    tt_tableStarted: tt_tableStarted, tt_introFrontierTable: tt_introFrontierTable,
+    tt_setRange: tt_setRange, tt_maybeAutoRange: tt_maybeAutoRange, TT_RANGE_AUTO_RUNG: TT_RANGE_AUTO_RUNG,
     tt_bridgeEligible: tt_bridgeEligible,
     TT_PROBE_POOLS: TT_PROBE_POOLS, tt_introAllowed: tt_introAllowed,
     tt_tilePlacementPending: tt_tilePlacementPending, tt_classCNext: tt_classCNext,
@@ -4079,8 +4235,11 @@ function ttMakePairs(els) {
     els.tablesWrap.style.display = (control === "game") ? "none" : "";
     if (control === "game") return;
     var allowed = (control === "adult" && s.tables.length) ? s.tables : null;
+    var N = ctx.N ? ctx.N() : TT_PAIRS_TABLES_UP_TO;
     Array.prototype.forEach.call(els.tables.children, function (c) {
-      var ok = !allowed || allowed.indexOf(+c.dataset.t) >= 0;
+      var inRange = +c.dataset.t <= N;                 // h19: above the player's range → not shown
+      c.style.display = inRange ? "" : "none";
+      var ok = inRange && (!allowed || allowed.indexOf(+c.dataset.t) >= 0);
       c.disabled = !ok;
       c.classList.toggle("off", !ok);
       c.classList.toggle("sel", !!allowed && ok);     // adult set → preselect it all
@@ -5068,6 +5227,335 @@ function ttMakePop(root) {
 // ==== MODULE tt_skin_pop_play.js [END] ====
 </script>
 <script>
+// ==== MODULE tt_skin_practice.js [BEGIN] ====
+// ============================================================================
+// tt_skin_practice.js — Game 4 "Practice": PURE rules (no DOM)
+// ----------------------------------------------------------------------------
+// A step-through of ONE table b: 1×b, 2×b … N×b, always ascending, alongside an
+// array scaffold (row k = k rows of b, game3 §3). Records NOTHING to the engine —
+// a teaching game (tables_game4_practice_design.md). Practice points are kept per
+// table, per player, by the host — outside the engine.
+// The DOM player is tt_skin_practice_play.js.
+// ============================================================================
+
+// Levels, easiest → hardest (Kath h19). array: draw the dots + row loops.
+// keepPrev: answered questions stay on screen. points: earned for a completed run.
+var TT_PRACTICE_LEVELS = [
+  { id: "a", name: "Getting started",    points: 1, array: true,  keepPrev: true  },
+  { id: "b", name: "Gaining confidence", points: 2, array: true,  keepPrev: false },
+  { id: "c", name: "Going solo",         points: 4, array: false, keepPrev: false },
+];
+var TT_PRACTICE_DEFAULT_LEVEL = "b";     // the middle level (Kath h19)
+var TT_PRACTICE_BONUS = 1;               // a run with no help and no wrong answers
+var TT_PRACTICE_HELP_MS = 3000;          // "Help me out" shows the answer (L3) this long, then hides it
+var TT_PRACTICE_CORRECT_MS = 1000;       // green answer box before the next loop + question
+var TT_PRACTICE_WRONG_MS = 600;          // red-tinged answer box, then cleared for another go
+var TT_PRACTICE_POINTS_DELAY_MS = 2000;  // end of table: the points panel joins the completed table after this (Kath h19)
+var TT_PRACTICE_TIMES = "×";        // ×, escaped (the project's multi-byte hazard)
+
+function ttPracticeLevel(id) {
+  for (var i = 0; i < TT_PRACTICE_LEVELS.length; i++) if (TT_PRACTICE_LEVELS[i].id === id) return TT_PRACTICE_LEVELS[i];
+  return ttPracticeLevel(TT_PRACTICE_DEFAULT_LEVEL);
+}
+
+// Tables the child may pick: every table up to N, unless the adult has restricted the
+// child to a subset ("only these") — then that subset. "Mostly these" excludes nothing.
+// The child's own daily pick does NOT narrow it (Kath h19: adult scope only).
+function ttPracticeTables(N, scope) {
+  var all = [];
+  for (var t = 1; t <= N; t++) all.push(t);
+  if (!scope || scope.control !== "adult" || scope.strict !== "only" || !scope.tables || !scope.tables.length) return all;
+  var sub = scope.tables.filter(function (t) { return t >= 1 && t <= N; }).sort(function (x, y) { return x - y; });
+  return sub.length ? sub : all;
+}
+
+// Default table: the one being introduced now (frontier — tt_introFrontierTable). If that
+// is null or not offered: the lowest offered table with a fact below keypad × (R6).
+function ttPracticeDefault(tables, frontier, factStates) {
+  if (!tables.length) return null;
+  if (frontier != null && tables.indexOf(frontier) >= 0) return frontier;
+  for (var i = 0; i < tables.length; i++) {
+    var t = tables[i];
+    var open = (factStates || []).some(function (f) { return (f.a === t || f.b === t) && f.confirmedRung < 6; });
+    if (open) return t;
+  }
+  return tables[0];
+}
+
+// The run: row k asks k × b (k rows of b).
+function ttPracticeQuestions(b, N) {
+  var out = [];
+  for (var k = 1; k <= N; k++) out.push({ a: k, b: b, c: k * b });
+  return out;
+}
+
+function ttPracticeQText(q, withAnswer) {
+  return q.a + " " + TT_PRACTICE_TIMES + " " + q.b + " =" + (withAnswer ? " " + q.c : "");
+}
+
+// Points for a completed run. independent = no "Help me out", no wrong answer.
+function ttPracticePoints(levelId, independent) {
+  var base = ttPracticeLevel(levelId).points, bonus = independent ? TT_PRACTICE_BONUS : 0;
+  return { base: base, bonus: bonus, total: base + bonus };
+}
+
+function ttPracticeEarnedText(p) {
+  var s = "You earned " + p.base + " practice point" + (p.base === 1 ? "" : "s");
+  return p.bonus ? s + " plus a bonus point because you did it yourself." : s + ".";
+}
+
+function ttPracticeTotalText(total, table) {
+  return "You have " + total + " practice point" + (total === 1 ? "" : "s") + " for the " + table + TT_PRACTICE_TIMES + " table.";
+}
+
+// ============================================================================
+// end tt_skin_practice.js
+// ============================================================================
+// ==== MODULE tt_skin_practice.js [END] ====
+</script>
+<script>
+// ==== MODULE tt_skin_practice_play.js [BEGIN] ====
+// ============================================================================
+// tt_skin_practice_play.js — Game 4 "Practice": the DOM player
+// ----------------------------------------------------------------------------
+// Three phases inside the host section:
+//   pick → the table chips (offered set + default from the flow) + the three levels
+//   play → scaffold LEFT (k rows of b dots; a loop added per answered row), questions
+//          RIGHT, each aligned with its row; keypad + "Help me out" underneath.
+//          Level c: no array — one question at a time.
+//   done → every question answered stays on show; the points panel joins it after
+//          TT_PRACTICE_POINTS_DELAY_MS, in place of the keypad.
+// Records NOTHING to the engine. Points are saved through ctx.savePoints when the
+// run completes (before the summary — leaving during it does not lose them).
+//
+// ttMakePractice(el) → { start(ctx), stop() }
+//   ctx = { N, tables[], defaultTable, loadPoints() → {table: n}, savePoints(obj) }
+// ============================================================================
+
+function ttMakePractice(el) {
+  var ctx = null, timers = [], helpTimer = null;
+  var table = null, levelId = TT_PRACTICE_DEFAULT_LEVEL;
+  var qs = [], cur = 0, entry = "", lock = false, independent = true, phase = "pick";
+  var boardEl = null, helpEl = null, padEl = null, rowEls = [], boxEl = null, cell = 28;
+
+  function later(fn, ms) { var id = setTimeout(function () { timers = timers.filter(function (x) { return x !== id; }); fn(); }, ms); timers.push(id); return id; }
+  function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+  function div(cls, text) { var d = document.createElement("div"); d.className = cls; if (text != null) d.textContent = text; return d; }
+  function btn(cls, text, fn) { var b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.addEventListener("click", fn); return b; }
+  function svgEl(tag, attrs) { var e = document.createElementNS("http://www.w3.org/2000/svg", tag); for (var k in attrs) e.setAttribute(k, attrs[k]); return e; }
+
+  // --- pick ------------------------------------------------------------------
+  function renderPick() {
+    phase = "pick"; clearTimers(); el.innerHTML = "";
+    var wrap = div("tt-pr-pick");
+    wrap.appendChild(div("tt-pr-title", "Practice"));
+    wrap.appendChild(div("tt-pr-legend", "Which table?"));
+    var chips = div("tt-pr-chips");
+    ctx.tables.forEach(function (t) {
+      var c = btn("tt-chip" + (t === table ? " sel" : ""), String(t), function () { table = t; renderPick(); });
+      chips.appendChild(c);
+    });
+    wrap.appendChild(chips);
+    wrap.appendChild(div("tt-pr-legend", "How hard?"));
+    var lv = div("tt-pr-levels");
+    TT_PRACTICE_LEVELS.forEach(function (L) {
+      lv.appendChild(btn("tt-pr-level" + (L.id === levelId ? " sel" : ""), L.name, function () { levelId = L.id; renderPick(); }));
+    });
+    wrap.appendChild(lv);
+    wrap.appendChild(btn("tt-pr-go", "Start", function () { if (table != null) startRun(); }));
+    el.appendChild(wrap);
+  }
+
+  // --- play ------------------------------------------------------------------
+  function startRun() {
+    qs = ttPracticeQuestions(table, ctx.N); cur = 0; entry = ""; lock = false; independent = true;
+    renderPlay();
+  }
+
+  function renderPlay() {
+    phase = "play"; clearTimers(); el.innerHTML = "";
+    var L = ttPracticeLevel(levelId);
+    var wrap = div("tt-pr-play" + (L.array ? "" : " tt-pr-solo"));
+    wrap.appendChild(div("tt-pr-head", table + TT_PRACTICE_TIMES + " table"));
+    boardEl = div("tt-pr-board");
+    wrap.appendChild(boardEl);
+    helpEl = div("tt-pr-help-caption");
+    wrap.appendChild(helpEl);
+    padEl = div("tt-pr-pad");              // wrapper: ttMountInput rewrites its own element's class
+    var padIn = div(""); padEl.appendChild(padIn);
+    ttMountInput(padIn, { key: pressKey }).render({ inputType: "keypad" });
+    wrap.appendChild(padEl);
+    wrap.appendChild(btn("tt-pr-helpbtn", "Help me out", helpMeOut));
+    el.appendChild(wrap);
+    drawBoard(false);
+    fit();
+  }
+
+  // The board. Array levels: one row per question — dots (+ loop once reached) on the
+  // left, the question on the right. Level c: the current question alone.
+  function drawBoard(summary) {
+    var L = ttPracticeLevel(levelId);
+    boardEl.innerHTML = ""; rowEls = []; boxEl = null;
+    if (!L.array) {
+      if (summary) {
+        var list = div("tt-pr-list");
+        qs.forEach(function (q) { list.appendChild(div("tt-pr-q tt-pr-q-done", ttPracticeQText(q, true))); });
+        boardEl.appendChild(list);
+      } else {
+        var one = div("tt-pr-q tt-pr-q-solo");
+        fillQuestion(one, qs[cur]);
+        boardEl.appendChild(one);
+      }
+      return;
+    }
+    var dots = div("tt-pr-dots"), col = div("tt-pr-qs");
+    qs.forEach(function (q, k) {
+      var reached = summary || k <= cur;
+      var svg = svgEl("svg", { "class": "tt-pr-row-svg" });
+      svg.dataset.cols = q.b;
+      dots.appendChild(svg);
+      rowEls.push(svg);
+      var qd = div("tt-pr-q");
+      if (summary || (k < cur && L.keepPrev)) { qd.textContent = ttPracticeQText(q, true); qd.classList.add("tt-pr-q-done"); }
+      else if (k === cur) fillQuestion(qd, q);
+      col.appendChild(qd);
+      svg.dataset.loop = reached ? "1" : "";
+    });
+    boardEl.appendChild(dots); boardEl.appendChild(col);
+  }
+
+  function fillQuestion(qd, q) {
+    qd.appendChild(document.createTextNode(ttPracticeQText(q, false) + " "));
+    boxEl = document.createElement("span"); boxEl.className = "tt-pr-box"; boxEl.textContent = entry;
+    qd.appendChild(boxEl);
+  }
+
+  // Size the array cell to the room the board has (rows × cols must fit), then draw
+  // the dots and loops at that size. Rows and question lines share the cell height,
+  // so each question sits level with its row by construction.
+  function fit() {
+    if (!boardEl) return;
+    var L = ttPracticeLevel(levelId);
+    var n = qs.length || 1, cols = table || 1;
+    var w = boardEl.clientWidth || 320, h = boardEl.clientHeight || 360;
+    if (L.array) {
+      // "12 × 12 = [144]" at 0.68·cell font ≈ 4.5 cells wide; 30/14 = dot-panel padding + gap
+      cell = Math.max(12, Math.min(40, Math.floor(Math.min((w - 30) / (cols + 4.5), (h - 14) / n))));
+    } else {
+      cell = Math.max(20, Math.min(56, Math.floor(h / (phase === "done" ? n : 2))));
+    }
+    el.style.setProperty("--tt-pr-cell", cell + "px");
+    rowEls.forEach(function (svg) { drawRow(svg, +svg.dataset.cols, svg.dataset.loop === "1"); });
+  }
+
+  function drawRow(svg, cols, loop) {
+    svg.innerHTML = "";
+    svg.setAttribute("width", cols * cell); svg.setAttribute("height", cell);
+    svg.setAttribute("viewBox", "0 0 " + cols * cell + " " + cell);
+    var r = Math.max(2, Math.round(cell * 0.17));
+    for (var j = 0; j < cols; j++) svg.appendChild(svgEl("circle", { cx: (j + 0.5) * cell, cy: cell / 2, r: r, fill: "#000" }));
+    if (loop) {
+      var pad = Math.max(2, Math.round(cell * 0.1)), sw = Math.max(2, Math.round(cell * 0.08));
+      svg.appendChild(svgEl("rect", { x: pad, y: pad, width: cols * cell - 2 * pad, height: cell - 2 * pad,
+        rx: (cell - 2 * pad) / 2, fill: "none", stroke: "#e08214", "stroke-width": sw }));
+    }
+  }
+
+  // --- answering (keypad + physical keyboard) ----------------------------------
+  function pressKey(k) {
+    if (phase !== "play" || lock) return;
+    if (k === "clear") entry = entry.slice(0, -1);
+    else if (k === "enter") { submit(); return; }
+    else if (k >= "0" && k <= "9") entry = (entry + k).slice(0, 3);
+    if (boxEl) { boxEl.textContent = entry; boxEl.classList.remove("bad"); }
+  }
+
+  function submit() {
+    if (entry === "" || lock) return;
+    var q = qs[cur];
+    if (parseInt(entry, 10) === q.c) {
+      lock = true; hideHelp();
+      if (boxEl) boxEl.classList.add("ok");
+      later(advance, TT_PRACTICE_CORRECT_MS);
+    } else {
+      independent = false; lock = true;
+      if (boxEl) boxEl.classList.add("bad");
+      later(function () { entry = ""; lock = false; if (boxEl) { boxEl.textContent = ""; boxEl.classList.remove("bad"); } }, TT_PRACTICE_WRONG_MS);
+    }
+  }
+
+  function advance() {
+    lock = false; entry = "";
+    if (cur + 1 >= qs.length) { finish(); return; }
+    cur++;
+    drawBoard(false); fit();
+  }
+
+  // L3 only: the answer for 3 s, then gone — the child still types it (help, not doing it).
+  function helpMeOut() {
+    if (phase !== "play" || lock) return;
+    independent = false;
+    helpEl.textContent = ttPracticeQText(qs[cur], true);
+    helpEl.classList.add("on");
+    if (helpTimer) clearTimeout(helpTimer);
+    helpTimer = later(function () { helpTimer = null; hideHelp(); }, TT_PRACTICE_HELP_MS);
+  }
+  function hideHelp() { if (helpEl) { helpEl.textContent = ""; helpEl.classList.remove("on"); } }
+
+  // --- done ------------------------------------------------------------------
+  function finish() {
+    var pts = ttPracticePoints(levelId, independent);
+    var store = ctx.loadPoints() || {};
+    store[table] = (store[table] || 0) + pts.total;
+    ctx.savePoints(store);
+    phase = "done"; hideHelp();
+    var wrap = el.querySelector(".tt-pr-play");
+    if (wrap) wrap.classList.add("tt-pr-summary");
+    drawBoard(true); fit();
+    later(function () { showPoints(pts, store[table]); }, TT_PRACTICE_POINTS_DELAY_MS);
+  }
+
+  function showPoints(pts, total) {
+    var wrap = el.querySelector(".tt-pr-play");
+    if (!wrap) return;
+    var card = div("tt-pr-result");
+    card.appendChild(div("tt-pr-earned", ttPracticeEarnedText(pts)));
+    card.appendChild(div("tt-pr-total", ttPracticeTotalText(total, table)));
+    card.appendChild(div("tt-pr-again", "One more time?"));
+    var row = div("tt-pr-yesno");
+    row.appendChild(btn("tt-pr-go", "Yes", startRun));
+    row.appendChild(btn("tt-pr-go tt-pr-no", "No", renderPick));
+    card.appendChild(row);
+    wrap.appendChild(card);
+    fit();                                 // the board lost the room the card took — resize the array
+  }
+
+  function onKey(e) {
+    if (!ctx || phase !== "play" || el.style.display === "none") return;
+    if (e.key >= "0" && e.key <= "9") { pressKey(e.key); e.preventDefault(); }
+    else if (e.key === "Backspace") { pressKey("clear"); e.preventDefault(); }
+    else if (e.key === "Enter") { pressKey("enter"); e.preventDefault(); }
+  }
+  if (typeof document !== "undefined") document.addEventListener("keydown", onKey);
+  if (typeof window !== "undefined") window.addEventListener("resize", function () { if (ctx && phase !== "pick") fit(); });
+
+  return {
+    start: function (c) {
+      ctx = c;
+      table = ctx.defaultTable;            // every entry opens on the table being learnt (Kath h19)
+      levelId = TT_PRACTICE_DEFAULT_LEVEL;
+      renderPick();
+    },
+    stop: function () { clearTimers(); phase = "pick"; ctx = null; el.innerHTML = ""; },
+  };
+}
+
+// ============================================================================
+// end tt_skin_practice_play.js
+// ============================================================================
+// ==== MODULE tt_skin_practice_play.js [END] ====
+</script>
+<script>
 // ==== MODULE tt_flow.js [BEGIN] ====
 // ============================================================================
 // tt_flow.js — child-facing SCREEN CONTROLLER (S0–S3), shared across ALL skins
@@ -5078,7 +5566,7 @@ function ttMakePop(root) {
 // read-only accessors (never touches eng.facts). See tables_architecture.md
 // (§2 surface, D1/D2) and tables_game_layer_design.md §6 (S0–S3 spec).
 //
-// Screens: who (S0) → select (S1) → play (S2) | pairs (Game 1) | pop (Game 2); the progress map
+// Screens: who (S0) → select (S1) → play (S2) | pairs (Game 1) | pop (Game 2) | practice (Game 4); the progress map
 // (S3) is an OVERLAY (not a nav screen — no back), shown on leaving a game and on
 // demand from the Games menu (h16 — no mid-game timed checkpoint). Every real
 // screen shows a top-left back button whose target is fixed by BACK below.
@@ -5103,6 +5591,7 @@ function ttStartFlow(opts) {
 
   var S = opts.screens || {};
   var backBtn = opts.back;
+  var playerBadge = opts.playerBadge;   // h20: active player's avatar beside back; host fills it, flow shows it off S0
   var qPanel = ttMountQuestion(opts.mounts.question);
   var iPanel = ttMountInput(opts.mounts.input, { key: pressKey, submit: submitTile });
   var fbPanel = ttMountFeedback(opts.mounts.feedback);
@@ -5137,7 +5626,7 @@ function ttStartFlow(opts) {
   var sessionLive = false, screen = null;
 
   // back target per screen; who (S0) is the root → no back. (S0 create-player = later.)
-  var BACK = { who: null, select: "who", play: "select", pairs: "select", pop: "select", settings: "select", adult: "settings" };
+  var BACK = { who: null, select: "who", play: "select", pairs: "select", pop: "select", practice: "select", settings: "select", adult: "settings" };
   // D5 scope control: game (engine adaptive) | adult (restricted) | child (picks each day).
   var scope = { control: "game", tables: [], strict: "mainly" };
   // Child daily pick (per player). Applied as `only` (agency); RESETS to engine each new
@@ -5154,9 +5643,11 @@ function ttStartFlow(opts) {
   function showScreen(name) {
     if (screen === "pairs" && name !== "pairs" && opts.pairs) opts.pairs.stop();   // leaving Game 1 (abandons a part-played placement board)
     if (screen === "pop" && name !== "pop" && opts.pop) opts.pop.stop();           // leaving Game 2
+    if (screen === "practice" && name !== "practice" && opts.practice) opts.practice.stop();   // leaving Game 4
     screen = name;
-    ["who", "select", "play", "pairs", "pop", "settings", "adult"].forEach(function (k) { if (S[k]) S[k].style.display = (k === name) ? "" : "none"; });
+    ["who", "select", "play", "pairs", "pop", "practice", "settings", "adult"].forEach(function (k) { if (S[k]) S[k].style.display = (k === name) ? "" : "none"; });
     if (backBtn) backBtn.style.visibility = BACK[name] ? "visible" : "hidden";
+    if (playerBadge) playerBadge.style.visibility = name === "who" ? "hidden" : "visible";
     if (opts.mounts.checkpoint) opts.mounts.checkpoint.style.display = "none";
   }
   function goWho() { endSession(); showScreen("who"); }
@@ -5164,8 +5655,18 @@ function ttStartFlow(opts) {
   // "My map" button (h16 showed it on every exit where the child had answered something).
   function goSelect() {
     endSession();
+    // h19: the one-time 10 → 12 upgrade is judged BETWEEN sessions (the engine is quiet here).
+    if (tt_maybeAutoRange(eng)) { persist(); if (typeof opts.onRangeUp === "function") opts.onRangeUp(); }
     showScreen("select");
   }
+  // h19: range (tables up to 10 / 12), per player. The adult's choice — after it the auto-upgrade
+  // never fires. Called from adult settings, i.e. with no session live.
+  function setRange(N) { endSession(); tt_setRange(eng, N, true); persist(); }   // persist even if unchanged: rangeAdultSet
+  function getRange() { return eng.config.tablesUpTo || 12; }
+  // Tables above the range mean nothing to the engine (no such facts): drop them from a scope or
+  // pick before resolving, so an "only 11, 12" scope on a range-10 player degrades to "any", not
+  // to an empty pool.
+  function inRange(ts) { var N = getRange(); return (ts || []).filter(function (t) { return t <= N; }); }
   function goPlay() { showScreen("play"); startSession(); }
   // Game 1 (Pairs): a Class-C game hosted by this controller. It opens a REAL
   // session because evidence is worthless without one — tt_recordAnswer dates
@@ -5175,6 +5676,17 @@ function ttStartFlow(opts) {
   // Game 2 (Pop): Class C like Pairs — same session/no-drive-loop shape, same context.
   // Scope is applied in openSession, so focus() reads the resolved mode. tables_game2_pop_design.md.
   function goPop() { showScreen("pop"); openSession(); if (opts.pop) opts.pop.start(skinCtx); }
+  // Game 4 (Practice): a teaching game — records NOTHING, so no engine session is opened.
+  // It reads the range, the adult scope and the intro frontier; points live with the host
+  // (opts.practiceStore), outside the engine. tables_game4_practice_design.md.
+  function goPractice() {
+    showScreen("practice");
+    if (!opts.practice) return;
+    var N = getRange(), tables = ttPracticeTables(N, getScope());
+    var store = opts.practiceStore || { load: function () { return {}; }, save: function () {} };
+    opts.practice.start({ N: N, tables: tables, defaultTable: ttPracticeDefault(tables, tt_introFrontierTable(eng), tt_getFactStates(eng)),
+      loadPoints: store.load, savePoints: store.save });
+  }
   function goSettings() { showScreen("settings"); }   // child settings menu (sound/timer + adult link)
   function goAdult() {                         // host gates this behind the grown-up challenge
     showScreen("adult");
@@ -5184,13 +5696,23 @@ function ttStartFlow(opts) {
     if (scope.control === "adult") return "adult — " + (scope.strict === "only" ? "only " : "mostly ") + (scope.tables.join(", ") || "none picked");
     return scope.control === "child" ? "the child" : "the game";
   }
-  function selectPlayer(newEng, pick) { endSession(); eng = newEng; if (arguments.length > 1) loadChildPick(pick); showScreen("select"); } // S0 → a player's engine (+ their daily pick) → Games
+  // S0 → a player's engine (+ their daily pick + their adult scope, h20) → Games
+  function selectPlayer(newEng, pick, sc) { endSession(); eng = newEng; if (arguments.length > 1) loadChildPick(pick); if (arguments.length > 2) loadScope(sc); showScreen("select"); }
   function back() { var t = BACK[screen]; if (t === "who") goWho(); else if (t === "select") goSelect(); else if (t === "settings") goSettings(); }
 
   // D5 scope control — host sets {control, tables, strict}; applied at each play start.
-  function setScope(s) { scope = { control: s.control || "game", tables: s.tables || [], strict: s.strict || "mainly" }; }
+  // h20 (Kath): PER PLAYER, like the range — persisted via opts.onScope, restored by selectPlayer.
+  function loadScope(s) { s = s || {}; scope = { control: s.control || "game", tables: (s.tables || []).slice(), strict: s.strict || "mainly" }; }
+  function setScope(s) {
+    loadScope(s);
+    if (typeof opts.onScope === "function") opts.onScope(getScope());
+  }
   function getScope() { return { control: scope.control, tables: scope.tables.slice(), strict: scope.strict }; }
-  function applyScope() { sessionCtx.mode = ttResolveMode(scope, childPick, todayStr()); }  // pure: tt_scope.js
+  function applyScope() {                                              // pure: tt_scope.js
+    var sc = { control: scope.control, tables: inRange(scope.tables), strict: scope.strict };
+    var pk = { date: childPick.date, tables: inRange(childPick.tables) };
+    sessionCtx.mode = ttResolveMode(sc, pk, todayStr());
+  }
   // Child sets today's tables (applied as `only`); persisted via opts.onChildPick.
   function setChildTables(tables) {
     childPick = ttMakePick(tables, todayStr());
@@ -5359,6 +5881,7 @@ function ttStartFlow(opts) {
   // tt_getFactStates, gets descriptors by key, and records through here.
   var skinCtx = {
     rungSpecs: TT_RUNGS,
+    N: getRange,                         // h19: the player's range — pickers hide tables above it
     scope: getScope,
     // the live session's RESOLVED scope ({kind:"any"|"mainly"|"only", tables}) — Pop
     // follows it as the drill does; Pairs has its own per-board table picker instead.
@@ -5431,7 +5954,7 @@ function ttStartFlow(opts) {
   });
   showScreen("who");   // start at S0; host wires child→goSelect, drill→goPlay
 
-  return { goWho: goWho, goSelect: goSelect, goPlay: goPlay, goPairs: goPairs, goPop: goPop,showMap: showMap, goSettings: goSettings, goAdult: goAdult, selectPlayer: selectPlayer, back: back, helpMeOut: helpMeOut, showMeWhy: showMeWhy, isReveal: function () { return !!(current && current.revealAnswer); }, qCount: function () { return renderCount; }, setScope: setScope, getScope: getScope, setChildTables: setChildTables, getChildPick: getChildPick, engine: function () { return eng; } };
+  return { goWho: goWho, goSelect: goSelect, goPlay: goPlay, goPairs: goPairs, goPop: goPop, goPractice: goPractice, showMap: showMap, goSettings: goSettings, goAdult: goAdult, selectPlayer: selectPlayer, back: back, helpMeOut: helpMeOut, showMeWhy: showMeWhy, isReveal: function () { return !!(current && current.revealAnswer); }, qCount: function () { return renderCount; }, setScope: setScope, getScope: getScope, setRange: setRange, getRange: getRange, setChildTables: setChildTables, getChildPick: getChildPick, engine: function () { return eng; } };
 }
 
 // ============================================================================
@@ -5582,10 +6105,12 @@ if (typeof module !== "undefined" && module.exports) {
   function loadEng(id) {
     var e = null;
     try { var s = localStorage.getItem("tt_eng_" + id); if (s) e = tt_deserialize(s); } catch (_) { e = null; }
-    return e || tt_newEngine({ tablesUpTo: 12, age: 8, mode: "any" });
+    return e || tt_newEngine({ tablesUpTo: 10, age: 8, mode: "any" });   // h19: new players start up to 10
   }
 
   function loadChildPick(id) { try { var s = localStorage.getItem("tt_childpick_" + id); if (s) return JSON.parse(s); } catch (_) {} return { date: null, tables: [] }; }
+  // h20: the adult's table scope is per player (default: the game decides).
+  function loadScope(id) { try { var s = localStorage.getItem("tt_scope_" + id); if (s) return JSON.parse(s); } catch (_) {} return { control: "game", tables: [], strict: "mainly" }; }
 
   // Game 3 drill scaffolding: controller (tt_skin_drill) over the DOM panel (tt_panels).
   var ttScaffold = ttMakeScaffoldController(ttMountScaffold(ttEl("ttScaffold")));
@@ -5601,23 +6126,39 @@ if (typeof module !== "undefined" && module.exports) {
   // Game 2 Pop skin (tt_skin_pop_play). Builds its scene inside #ttPop.
   var ttPop = ttMakePop(ttEl("ttPop"));
 
+  // Game 4 Practice skin (tt_skin_practice_play). Its points are per player, per table, under
+  // their own key (not the engine — Practice records nothing to it); deletePlayer removes them.
+  var ttPractice = ttMakePractice(ttEl("ttPractice"));
+  var practiceStore = {
+    load: function () { try { return JSON.parse(localStorage.getItem("tt_practice_" + currentPlayerId) || "{}"); } catch (_) { return {}; } },
+    save: function (o) { if (currentPlayerId) { try { localStorage.setItem("tt_practice_" + currentPlayerId, JSON.stringify(o)); } catch (_) {} } }
+  };
+
   var flow = ttStartFlow({
-    screens: { who: ttEl("ttWho"), select: ttEl("ttSelect"), settings: ttEl("ttSettings"), adult: ttEl("ttAdult"), play: ttEl("ttPlay"), pairs: ttEl("ttPairs"), pop: ttEl("ttPop") },
-    back: ttEl("ttBack"),
+    screens: { who: ttEl("ttWho"), select: ttEl("ttSelect"), settings: ttEl("ttSettings"), adult: ttEl("ttAdult"), play: ttEl("ttPlay"), pairs: ttEl("ttPairs"), pop: ttEl("ttPop"), practice: ttEl("ttPractice") },
+    back: ttEl("ttBack"), playerBadge: ttEl("ttPlayerBadge"),
     // h15: the flow swaps these two — they share one slot and are never both live.
     helpBtn: ttEl("ttHelp"), whyBtn: ttEl("ttWhy"),
     mounts: { question: ttEl("ttQuestion"), input: ttEl("ttInput"), feedback: ttEl("ttFeedback"), checkpoint: ttEl("ttCheckpoint"), achievements: ttEl("ttAdultProgress") },
     scaffold: ttScaffold,
     pairs: ttPairs,
     pop: ttPop,
+    practice: ttPractice, practiceStore: practiceStore,
     profile: { age: 8 },
     onState: function (e) { if (currentPlayerId) { try { localStorage.setItem("tt_eng_" + currentPlayerId, tt_serialize(e)); } catch (_) {} } },
-    onChildPick: function (pick) { if (currentPlayerId) { try { localStorage.setItem("tt_childpick_" + currentPlayerId, JSON.stringify(pick)); } catch (_) {} } }
+    // h19: the one-time 10 → 12 upgrade fired on leaving a game — tell the child on the Games screen.
+    onRangeUp: function () { ttEl("ttGamesMsg").textContent = "The 11 and 12 times tables are now in your games."; },
+    onChildPick: function (pick) { if (currentPlayerId) { try { localStorage.setItem("tt_childpick_" + currentPlayerId, JSON.stringify(pick)); } catch (_) {} } },
+    onScope: function (sc) { if (currentPlayerId) { try { localStorage.setItem("tt_scope_" + currentPlayerId, JSON.stringify(sc)); } catch (_) {} } }
   });
   ttEl("ttHelp").addEventListener("click", flow.helpMeOut);
   ttEl("ttWhy").addEventListener("click", flow.showMeWhy);
 
-  function pickPlayer(id) { currentPlayerId = id; flow.selectPlayer(loadEng(id), loadChildPick(id)); }
+  function pickPlayer(id) {
+    currentPlayerId = id;
+    var p = players.filter(function (x) { return x.id === id; })[0];
+    ttEl("ttPlayerBadge").textContent = p ? p.avatar : "";
+    flow.selectPlayer(loadEng(id), loadChildPick(id), loadScope(id)); }
   function renderPlayers() {
     var box = ttEl("ttPlayers"); box.innerHTML = "";
     players.forEach(function (p) { box.appendChild(avatarBtn({ e: p.avatar, name: p.name || "" }, function () { pickPlayer(p.id); })); });
@@ -5646,12 +6187,13 @@ if (typeof module !== "undefined" && module.exports) {
   renderPlayers();
 
   // --- Games + child settings ----------------------------------------------
-  // Four game slots. 1 = Pairs, 2 = Pop, 3 = the drill; 4 is a stub for now.
+  // Four game slots. 1 = Pairs, 2 = Pop, 3 = the drill, 4 = Practice.
   Array.prototype.forEach.call(document.querySelectorAll(".tt-game"), function (b) {
     b.addEventListener("click", function () {
       if (this.id === "ttDrill") { ttEl("ttGamesMsg").textContent = ""; flow.goPlay(); }
       else if (this.id === "ttPairsBtn") { ttEl("ttGamesMsg").textContent = ""; flow.goPairs(); }
       else if (this.id === "ttPopBtn") { ttEl("ttGamesMsg").textContent = ""; flow.goPop(); }
+      else if (this.id === "ttPracticeBtn") { ttEl("ttGamesMsg").textContent = ""; flow.goPractice(); }
       else { ttEl("ttGamesMsg").textContent = "This game isn't built yet."; }
     });
   });
@@ -5702,7 +6244,7 @@ if (typeof module !== "undefined" && module.exports) {
     var wasCurrent = p.id === currentPlayerId;
     if (wasCurrent) currentPlayerId = null;        // BEFORE leaving: the session-close save must not rewrite their data
     players = players.filter(function (x) { return x.id !== p.id; }); savePlayers();
-    try { localStorage.removeItem("tt_eng_" + p.id); localStorage.removeItem("tt_childpick_" + p.id); } catch (_) {}
+    try { localStorage.removeItem("tt_eng_" + p.id); localStorage.removeItem("tt_childpick_" + p.id); localStorage.removeItem("tt_practice_" + p.id); localStorage.removeItem("tt_scope_" + p.id); } catch (_) {}
     renderPlayers();
     if (wasCurrent) flow.goWho(); else renderDeleteList();
   }
@@ -5726,8 +6268,11 @@ if (typeof module !== "undefined" && module.exports) {
     var show = flow.getScope().control === "child";
     ttEl("ttChildPickWrap").style.display = show ? "" : "none";
     if (!show) return;
-    var today = flow.getChildPick().today;   // [] on a new day (blank)
-    Array.prototype.forEach.call(ttEl("ttChildTables").children, function (t) { t.classList.toggle("sel", today.indexOf(+t.dataset.t) >= 0); });
+    var today = flow.getChildPick().today, N = flow.getRange();   // [] on a new day (blank)
+    Array.prototype.forEach.call(ttEl("ttChildTables").children, function (t) {
+      t.style.display = +t.dataset.t <= N ? "" : "none";           // h19: nothing above the player's range
+      t.classList.toggle("sel", today.indexOf(+t.dataset.t) >= 0 && +t.dataset.t <= N);
+    });
   }
 
   // --- S1b: 3-way scope control + adult table picker (chips + group selectors) --
@@ -5747,9 +6292,18 @@ if (typeof module !== "undefined" && module.exports) {
   Array.prototype.forEach.call(document.querySelectorAll("#ttAdultTables .tt-group"), function (gb) {
     gb.addEventListener("click", function () {
       var set = this.dataset.g.split(",");
-      Array.prototype.forEach.call(document.querySelectorAll("#ttChips .tt-chip"), function (c) { if (set.indexOf(c.dataset.t) >= 0) c.classList.add("sel"); });
+      Array.prototype.forEach.call(document.querySelectorAll("#ttChips .tt-chip"), function (c) { if (set.indexOf(c.dataset.t) >= 0 && c.style.display !== "none") c.classList.add("sel"); });
     });
   });
+  function rangeValue() { var r = document.querySelector('input[name="range"]:checked'); return r ? +r.value : 10; }
+  // h19: the adult chips follow the range radio LIVE (switching to 12 here shows 11/12 at once).
+  function syncRangeChips() {
+    var N = rangeValue();
+    Array.prototype.forEach.call(document.querySelectorAll("#ttChips .tt-chip"), function (c) {
+      var on = +c.dataset.t <= N; c.style.display = on ? "" : "none"; if (!on) c.classList.remove("sel");
+    });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('input[name="range"]'), function (r) { r.addEventListener("change", syncRangeChips); });
   function scopeControlValue() { var r = document.querySelector('input[name="scope"]:checked'); return r ? r.value : "game"; }
   function strictValue() { var r = document.querySelector('input[name="strict"]:checked'); return r ? r.value : "mainly"; }
   function selectedTables() { return Array.prototype.map.call(document.querySelectorAll("#ttChips .tt-chip.sel"), function (c) { return +c.dataset.t; }); }
@@ -5759,11 +6313,14 @@ if (typeof module !== "undefined" && module.exports) {
     (document.querySelector('input[name="strict"][value="' + s.strict + '"]') || {}).checked = true;
     Array.prototype.forEach.call(document.querySelectorAll("#ttChips .tt-chip"), function (c) { c.classList.toggle("sel", s.tables.indexOf(+c.dataset.t) >= 0); });
     ttEl("ttAdultTables").style.display = (s.control === "adult") ? "" : "none";
+    (document.querySelector('input[name="range"][value="' + flow.getRange() + '"]') || {}).checked = true;
+    syncRangeChips();
   }
   Array.prototype.forEach.call(document.querySelectorAll('input[name="scope"]'), function (r) {
     r.addEventListener("change", function () { ttEl("ttAdultTables").style.display = (scopeControlValue() === "adult") ? "" : "none"; });
   });
   ttEl("ttAdultApply").onclick = function () {
+    if (rangeValue() !== flow.getRange()) flow.setRange(rangeValue());   // only a CHANGE counts as the adult's choice
     flow.setScope({ control: scopeControlValue(), tables: selectedTables(), strict: strictValue() });
     flow.goSelect();
   };
