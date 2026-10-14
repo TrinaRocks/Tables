@@ -23,7 +23,7 @@
   /* h20: phone landscape uses the full width (was capped at the 480px portrait column — the
      forced-decision "landscape wastes half the screen", h13). viewport-fit=cover lets content run
      under the notch, so pad by the safe areas, as Pop does. Same breakpoint as the drill/Pairs. */
-  @media (orientation: landscape) and (max-height: 600px) {
+  @media (orientation: landscape) and (max-height: 600px), (orientation: landscape) and (pointer: coarse) {   /* h20: + touch tablets */
     #app { max-width: none; padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
     /* h20 (Kath, iPhone): Games as a 2x2 grid — the 6-row column needed ~535px. Title, My map
        and the message span both columns. The message only takes room when it has text. */
@@ -164,11 +164,11 @@
    while a scaffold is up, the play is EXACTLY the screen tall and the slot is the one
    item that shrinks — ttMountScaffold.fit() (ResizeObserver) scales the card into it.
    The question→array gap also goes (question margin + an EMPTY feedback line ≈ 86px). */
-.tt-play:has(.tt-scaffold) { height:var(--tt-vh, 100vh); min-height:0; }
+.tt-play:has(.tt-scaffold) { height:var(--tt-vh, 100vh); min-height:0; gap:8px; }   /* h20 Kath: tighter still — the array gets the room */
 .tt-play:has(.tt-scaffold) > * { flex-shrink:0; }
 .tt-play:has(.tt-scaffold) > .tt-scaffold-slot { flex-shrink:1; }
 .tt-play:has(.tt-scaffold) .tt-question { margin:0; }
-.tt-play:has(.tt-scaffold) .tt-feedback:empty { min-height:0; }
+.tt-play:has(.tt-scaffold) .tt-feedback:empty { display:none; }   /* not just 0px: an empty item still costs a flex/grid gap */
 /* PORTRAIT: cap the array at ~60% of the height so the horizontal tile row stays
    on-screen (no scroll to reach the answers). Small arrays are under the cap and
    untouched; a big fact (e.g. 8×7) is scaled to fit by ttFitScaffold. */
@@ -183,7 +183,8 @@
 
 /* LANDSCAPE (short axis = height): only when tiles+array coexist (recognition).
    Keypad recall (no array) keeps the plain centred stack. */
-@media (orientation:landscape) and (max-height:600px) {
+/* h20: + touch tablets in landscape (Kath, iPad: keypad off-screen, array in a 480px column). */
+@media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (pointer:coarse) {
   /* FLANK the input into a full-height column on the right whenever it would
      otherwise overflow the short viewport — i.e. a scaffold card is on screen
      (tiles+array OR keypad+L3-caption corrective) OR the input is the KEYPAD
@@ -199,7 +200,9 @@
        the whole play within one screen (no scroll in landscape). */
     height:var(--tt-vh, 100vh); overflow:hidden;
     grid-template-columns:1fr auto; grid-template-rows:auto auto minmax(0,1fr) auto;
-    grid-template-areas:"question input" "feedback input" "array input" "help input"; }
+    /* h20 (Kath): help / show-me-why sit UNDER the input (right), so the array keeps the left
+       column's full height below the question. */
+    grid-template-areas:"question input" "feedback input" "array input" "array help"; }
   .tt-play:has(.tt-scaffold) .tt-question, .tt-play:has(.tt-keypad) .tt-question { grid-area:question; margin:0; }
   .tt-play:has(.tt-scaffold) .tt-feedback, .tt-play:has(.tt-keypad) .tt-feedback { grid-area:feedback; text-align:center; }
   /* array cell has a DEFINITE height (minmax(0,1fr)); ttFitScaffold scales the
@@ -300,6 +303,12 @@
    — and the ↻ — landed partway up the card (measured 844×340: ↻ at y153–171 on a panel
    y92–278). Content-height wrap → its bottom-right IS the panel's, at any scale. */
 .tt-drill .tt-scaffold-slot > .tt-scaffold { align-self:flex-start; }
+/* h20 (Kath): the "Swap trick…" line sits JUST ABOVE the card at full size (tt_panels puts it
+   outside the scaled wrap), in the question→card gap — tight, so the card keeps the room.
+   The slot stacks note over card; the card stays centred and top-anchored. */
+.tt-drill .tt-scaffold-slot:has(.tt-scaffold-note) { flex-direction:column; align-items:center; justify-content:flex-start; row-gap:4px; }
+.tt-drill .tt-scaffold-slot:has(.tt-scaffold-note) > .tt-scaffold { align-self:center; }
+.tt-drill .tt-scaffold-note { flex:none; font-size:17px; font-weight:bold; line-height:1.2; color:#d0eeff; text-align:center; }   /* not orange: orange means "wrong" in this skin */
 
 /* Help me out — same colour AND squareness as the keypad tiles (radius 7px, not a pill) */
 .tt-drill .tt-help { border:none; border-radius:7px; padding:12px 20px; font-weight:700; font-family:inherit;
@@ -440,6 +449,9 @@
 .tt-pairs .tt-pairs-credit { flex:0 0 auto; font-size:9px; color:#6f93b5; text-align:center;
   line-height:1.2; min-height:11px; }
 
+/* h20: the "Tables" button + pop-up "Done" exist only for landscape phones (below). */
+.tt-pairs .tt-pairs-tables-btn, .tt-pairs .tt-pairs-tables-done { display:none; }
+
 /* Landscape: the setup strip eats the short axis, so shrink it and let the board
    keep the room (same short-axis principle as the drill, game3_design/h12). */
 @media (orientation: landscape) and (max-height: 560px) {
@@ -468,6 +480,18 @@
   .tt-pairs .tt-pairs-grid { z-index:2; }
   .tt-pairs .tt-pairs-credit { grid-area:board; align-self:end; justify-self:end; position:relative; z-index:1;
     font-size:8px; min-height:0; margin:0 8px 3px 0; color:#1a1a1a; pointer-events:none; }
+  /* h20 (Kath): no room for the table chooser's two rows here (cards fell to 39px on a 667px
+     phone) — it becomes a pop-up behind a "Tables" button in the top row. Same chips, same
+     rules; the inline display:none (computer picks) still wins, so no chooser = no button. */
+  .tt-pairs .tt-pairs-tables-btn[data-on="1"] { display:inline-block; color:#d0eeff; }
+  .tt-pairs #ttPairsTablesWrap { display:none; }
+  .tt-pairs #ttPairsTablesWrap.tt-open { display:block; position:fixed; z-index:9; left:50%; top:50%;
+    transform:translate(-50%, -50%); max-width:92vw; padding:12px 16px; border-radius:14px;
+    background:#0a1a3a; border:1px solid #1a5090; box-shadow:0 6px 24px rgba(0, 0, 0, .6); }
+  .tt-pairs #ttPairsTablesWrap.tt-open .tt-chip { height:34px; font-size:15px; }
+  .tt-pairs .tt-pairs-tables-done { display:block; margin:8px auto 0; }
+  /* ...light text where the photo is dark at that corner (TT_PAIRS_ANIMALS creditLight, h20) */
+  .tt-pairs .tt-pairs-credit.tt-pairs-credit-light { color:#f2f2f2; }
 }
 
 /* ============================================================================
@@ -769,9 +793,11 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
         <div class="tt-pairs-legend">Times table</div>
         <div id="ttPairsTables" class="tt-chips"></div>
         <div id="ttPairsGroups" class="tt-groups"></div>
+        <button id="ttPairsTablesDone" class="tt-pairs-new tt-pairs-tables-done" type="button">Done</button>
       </div>
     </div>
     <div class="tt-pairs-bar">
+      <button id="ttPairsTablesBtn" class="tt-pairs-new tt-pairs-tables-btn" type="button">Tables</button>
       <button id="ttPairsNew" class="tt-pairs-new" type="button">New Game</button>
       <span id="ttPairsStatus" class="tt-pairs-status"></span>
       <span id="ttPairsHint" class="tt-pairs-hint"></span>
@@ -3714,7 +3740,7 @@ function ttMountFeedback(el) {
 // (tt_scaffold.js) + ttPlayScaffold (tt_scaffold_play.js). info = {a,b,op,level}.
 // The corrective/copy-to-proceed GATE lives in tt_flow; this only renders + replays.
 function ttMountScaffold(el) {
-  var handle = null, wrap = null, onResize = null;
+  var handle = null, wrap = null, onResize = null, noteEl = null;
   // h20: the slot's box also changes WITHOUT a window resize (portrait flex-shrink: the
   // "Show me why" button hiding, feedback text arriving) — watch the slot itself.
   // fit() only sets a transform, which never changes the slot's box, so no loop.
@@ -3730,6 +3756,7 @@ function ttMountScaffold(el) {
     if (!wrap) return;
     wrap.style.transform = "";                                  // measure natural size unscaled
     var availW = el.clientWidth, availH = el.clientHeight;
+    if (noteEl) availH -= noteEl.offsetHeight + (parseFloat(getComputedStyle(el).rowGap) || 0);   // the note sits above the card
     // Measure the PANEL (the real content), NOT the wrap: the wrap is a flex item
     // in the slot and gets stretched to the slot's clamped height, so its
     // offsetHeight reports the CLAMP (availH), not the content — which made fit()
@@ -3762,6 +3789,16 @@ function ttMountScaffold(el) {
         replay.addEventListener("click", function () { if (handle) handle.replay(); });
         wrap.appendChild(replay);
       }
+      // info.note (h20, Kath): a one-line signpost ("Swap trick…") JUST ABOVE the card, OUTSIDE
+      // the scaled wrap — inside it, it shrank with the array (~10px on a phone). Full size, in
+      // the gap between the question and the card; fit() gives the card what is left.
+      noteEl = null;
+      if (info.note) {
+        noteEl = document.createElement("div");
+        noteEl.className = "tt-scaffold-note";
+        noteEl.textContent = info.note;
+        el.appendChild(noteEl);
+      }
       el.appendChild(wrap);
       var script = ttBuildScaffold({ a: info.a, b: info.b, op: info.op, level: info.level, unknown: info.unknown,
                                      lead: info.lead });
@@ -3770,7 +3807,11 @@ function ttMountScaffold(el) {
       // started on entry would fire mid-explanation. Fires again after a replay.
       handle = ttPlayScaffold(stage, script, { onDone: info.onDone });
       el.style.display = "";
-      if (typeof requestAnimationFrame !== "undefined") requestAnimationFrame(fit); else fit();
+      // h20: fit NOW as well — the card is built synchronously, so its size is already
+      // measurable; the next-frame fit stays for late font/layout settling. (A throttled
+      // tab that paints no frames never ran the rAF one: card left unscaled, measured h20.)
+      fit();
+      if (typeof requestAnimationFrame !== "undefined") requestAnimationFrame(fit);
       if (typeof window !== "undefined" && !onResize) { onResize = fit; window.addEventListener("resize", onResize); }
     },
     // h15: carry the copy-to-proceed hint on the SLOT, so the skin can reach the
@@ -3778,7 +3819,7 @@ function ttMountScaffold(el) {
     hint: function (on) { el.classList.toggle("tt-hint", !!on); },
     clear: function () {
       if (typeof window !== "undefined" && onResize) { window.removeEventListener("resize", onResize); onResize = null; }
-      if (handle) { handle.destroy(); handle = null; } wrap = null; el.innerHTML = ""; el.style.display = "none";
+      if (handle) { handle.destroy(); handle = null; } wrap = null; noteEl = null; el.innerHTML = ""; el.style.display = "none";
       el.classList.remove("tt-hint");
     }
   };
@@ -4251,25 +4292,30 @@ if (typeof module !== "undefined" && module.exports) {
 // This replaces hand-cropping the files (h13): a crop throws away the margin the
 // other board shapes need, which is what clipped the goat in landscape. Pick a new
 // photo's focal point ONCE; never edit the image. Design §12.
+//
+// `creditLight: true` (h20, Kath): in landscape the credit is printed ON the photo, bottom-right,
+// in dark text — except where the photo is dark there, which gets light text. Measured, not
+// eyeballed: mean luminance under the credit box at both landscape board sizes, light if < ~115
+// (dolphin_leap 100/111 counts as dark; bunny 119-121 and hedgehog 114-121 stay dark text).
 var TT_PAIRS_ANIMALS = [
-  { src: "images/panda.jpg", alt: "Baby panda cub", credit: "Sheila Lau, public domain, via Wikimedia Commons" },
+  { src: "images/panda.jpg", creditLight: true, alt: "Baby panda cub", credit: "Sheila Lau, public domain, via Wikimedia Commons" },
   { src: "images/bunny.jpg", alt: "Baby rabbit", credit: "Siddharth Patil, CC0, via Wikimedia Commons", focal: [0.62, 0.30] },   // rabbit sits right of centre, low in the grass
-  { src: "images/fox.jpg", alt: "Young red fox", credit: "CC0, via Wikimedia Commons" },
-  { src: "images/kitten.jpg", alt: "Curious kitten", credit: "Dimitri Houtteman, CC0, via Wikimedia Commons" },
+  { src: "images/fox.jpg", creditLight: true, alt: "Young red fox", credit: "CC0, via Wikimedia Commons" },
+  { src: "images/kitten.jpg", creditLight: true, alt: "Curious kitten", credit: "Dimitri Houtteman, CC0, via Wikimedia Commons" },
   { src: "images/puppy.jpg", alt: "Puppy in leaves", credit: "C. E. Price, public domain, via Wikimedia Commons" },
   { src: "images/piglet.jpg", alt: "Piglet", credit: "Petr Kratochvil, CC0, via Wikimedia Commons", focal: [0.5, 0.35] },   // portrait source: head high in a wide strip
   { src: "images/chick_duckling.jpg", alt: "Chick and duckling", credit: "CDC, public domain, via Wikimedia Commons", focal: [0.5, 0.18] },   // portrait source: both heads near the top
-  { src: "images/lamb.jpg", alt: "Lamb", credit: "Virginie Moerenhout, CC BY 2.0, via Wikimedia Commons", focal: [0.5, 0.15] },   // portrait source: head near the top
-  { src: "images/elephant.jpg", alt: "Elephant calf with mother", credit: "Tontan Travel, CC BY-SA 2.0, via Wikimedia Commons" },
+  { src: "images/lamb.jpg", creditLight: true, alt: "Lamb", credit: "Virginie Moerenhout, CC BY 2.0, via Wikimedia Commons", focal: [0.5, 0.15] },   // portrait source: head near the top
+  { src: "images/elephant.jpg", creditLight: true, alt: "Elephant calf with mother", credit: "Tontan Travel, CC BY-SA 2.0, via Wikimedia Commons" },
   // goat sits in the left third of its frame; rat: frames the right-hand rat
   { src: "images/goat.jpg", alt: "Young goat jumping", credit: "Wilfredor, CC0, via Wikimedia Commons", focal: [0.19, 0.49] },
-  { src: "images/rat.jpg", alt: "Young pet rat", credit: "Sarah Fleming (SMercury98), CC BY 2.0, via Wikimedia Commons", focal: [0.94, 0.58] },
+  { src: "images/rat.jpg", creditLight: true, alt: "Young pet rat", credit: "Sarah Fleming (SMercury98), CC BY 2.0, via Wikimedia Commons", focal: [0.94, 0.58] },
   { src: "images/hedgehog.jpg", alt: "Young hedgehog", credit: "Tony Wills, CC BY-SA 3.0, via Wikimedia Commons", focal: [0.5, 0.40] },   // portrait-ish source, subject above centre
   // h18 (Kath): dolphins. Young: in a narrow (portrait) crop the BABIES are the focus, not the
   // mother — the two calves span x 0.17–0.55, y 0.45–0.80 of the frame.
   { src: "images/dolphin_young.jpg", alt: "Dolphin mother with two young", credit: "Peter Asprey, CC BY-SA 3.0, via Wikimedia Commons", focal: [0.27, 0.62] },
-  { src: "images/dolphin_wake.jpg", alt: "Dolphin riding a boat's wake", credit: "NASA, public domain, via Wikimedia Commons" },
-  { src: "images/dolphin_leap.jpg", alt: "Leaping dolphin", credit: "Craig Wallace, CC BY-SA 2.0, via Wikimedia Commons" }
+  { src: "images/dolphin_wake.jpg", creditLight: true, alt: "Dolphin riding a boat's wake", credit: "NASA, public domain, via Wikimedia Commons" },
+  { src: "images/dolphin_leap.jpg", creditLight: true, alt: "Leaping dolphin", credit: "Craig Wallace, CC BY-SA 2.0, via Wikimedia Commons" }
 ];
 
 // This project's difficulty groups (TT_GROUPS), NOT the exemplar's level sets.
@@ -4330,6 +4376,9 @@ function ttMakePairs(els) {
   function syncScope() {
     var s = ctx.scope(), control = s.control;
     els.tablesWrap.style.display = (control === "game") ? "none" : "";
+    // h20: landscape phones show the chooser as a pop-up behind a "Tables" button (CSS decides
+    // where the button is visible; this only says whether there is a chooser at all).
+    if (els.tablesBtn) els.tablesBtn.dataset.on = (control === "game") ? "" : "1";
     if (control === "game") return;
     var allowed = (control === "adult" && s.tables.length) ? s.tables : null;
     var N = ctx.N ? ctx.N() : TT_PAIRS_TABLES_UP_TO;
@@ -4432,6 +4481,7 @@ function ttMakePairs(els) {
     els.img.style.objectPosition = animal.focal
       ? (animal.focal[0] * 100) + "% " + (animal.focal[1] * 100) + "%" : "";
     els.credit.textContent = "Photo: " + animal.alt + " — " + animal.credit;
+    els.credit.classList.toggle("tt-pairs-credit-light", !!animal.creditLight);   // only styled in landscape (on the photo)
 
     var cards = ttPairsDeal(entries);
     els.grid.innerHTML = "";
@@ -4505,14 +4555,19 @@ function ttMakePairs(els) {
     status();
   }
 
-  els.newGame.addEventListener("click", function () { if (live) newGame(); });
+  els.newGame.addEventListener("click", function () { closePicker(); if (live) newGame(); });
+  // h20 (Kath): "Tables" pop-up picker (landscape phones — tt_skin_pairs.css). The chips inside
+  // are the SAME chooser as portrait; only its placement changes.
+  function closePicker() { els.tablesWrap.classList.remove("tt-open"); }
+  if (els.tablesBtn) els.tablesBtn.addEventListener("click", function () { els.tablesWrap.classList.toggle("tt-open"); });
+  if (els.tablesDone) els.tablesDone.addEventListener("click", closePicker);
 
   return {
     // h18 (Kath): entering Pairs deals a board straight away, as if New Game were pressed.
     // × is the default question type when none has been picked yet (New Game needs one).
     // In child-picks mode with no table chosen, the usual "Pick a times table first" shows.
     start: function (c) { ctx = c; live = true; reset(); syncScope(); if (!op) selectOp("x"); newGame(); },
-    stop: function () { live = false; reset(); },
+    stop: function () { live = false; closePicker(); reset(); },
   };
 }
 
@@ -6148,11 +6203,26 @@ function ttDrillScaffoldDims(d) {
 //   * Both tables started, or neither -> rows (status quo). Preferring the FEWER hops once
 //     both are known is a later efficiency tier, not this.
 //   * `tableStarted` absent (an older or hand-built descriptor) -> rows. Fails safe.
-function ttDrillScaffoldLead(d, dims) {
+//   * h20 (Kath): `1 x n` at L1 is ONE ROW of n, always. Led by columns (n's table not yet
+//     started) it showed n columns of 1 — counter-intuitive, and 1 x n is THE single-row
+//     example. L1 only: at L2 both phases play anyway, so nothing there changes (Kath).
+//     `n x 1` keeps its presented n rows of 1 (Kath h20).
+function ttDrillScaffoldLead(d, dims, level) {
   if (!dims || dims.unknown !== null) return "rows";
+  if (level === 1 && dims.a === 1) return "rows";
   var started = d.tableStarted || {};
   var rowStep = dims.b, colStep = dims.a;          // row phase counts in b, column phase in a
   return (!started[rowStep] && started[colStep]) ? "cols" : "rows";
+}
+
+// The swap signpost (h20, Kath). An L1 array led by COLUMNS shows only the column count —
+// e.g. 11 x 6 counted in 11s down 6 columns, because the 6s have not started. Unsignposted,
+// counting down columns for "11 x 6" is counter-intuitive, so the panel says why: it is
+// really 6 x 11. L1 only — at L2 the commutation is shown anyway (Kath). Product form only
+// (a forced axis is not a swap). Returns null when no note applies.
+function ttDrillSwapNote(dims, lead, level) {
+  if (level !== 1 || lead !== "cols" || !dims || dims.unknown !== null || dims.op === "÷") return null;
+  return "Swap trick… Think about " + dims.b + " × " + dims.a + " instead";
 }
 
 // The scaffold controller tt_flow drives (opts.scaffold). `panel` is a
@@ -6163,10 +6233,12 @@ function ttMakeScaffoldController(panel) {
     // until the child asks "show me why". Everything else still derives the level.
     show: function (descriptor, workingRung, onDone, levelOverride) {
       var dims = ttDrillScaffoldDims(descriptor);
-      panel.show({ a: dims.a, b: dims.b, op: dims.op, unknown: dims.unknown,
-                   lead: ttDrillScaffoldLead(descriptor, dims),
-                   onDone: onDone,
-                   level: levelOverride || ttDrillScaffoldLevel(descriptor, workingRung) });
+      var level = levelOverride || ttDrillScaffoldLevel(descriptor, workingRung);
+      var lead = ttDrillScaffoldLead(descriptor, dims, level);
+      var info = { a: dims.a, b: dims.b, op: dims.op, unknown: dims.unknown, lead: lead, onDone: onDone, level: level };
+      var note = ttDrillSwapNote(dims, lead, level);
+      if (note) info.note = note;
+      panel.show(info);
     },
     // h18 (Kath): the level a show() without override would pick — tt_flow offers "Show me
     // why" whenever this is L3 (caption only), so the child can always ask for the array.
@@ -6184,6 +6256,7 @@ if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     ttDrillRungToLevel: ttDrillRungToLevel,
     ttDrillScaffoldLead: ttDrillScaffoldLead,
+    ttDrillSwapNote: ttDrillSwapNote,
     ttDrillScaffoldLevel: ttDrillScaffoldLevel,
     ttDrillScaffoldDims: ttDrillScaffoldDims,
     ttMakeScaffoldController: ttMakeScaffoldController,
@@ -6232,7 +6305,8 @@ if (typeof module !== "undefined" && module.exports) {
     ops: ttEl("ttPairsOps"), tablesWrap: ttEl("ttPairsTablesWrap"), tables: ttEl("ttPairsTables"),
     groups: ttEl("ttPairsGroups"), newGame: ttEl("ttPairsNew"), status: ttEl("ttPairsStatus"),
     hint: ttEl("ttPairsHint"), img: ttEl("ttPairsImg"), grid: ttEl("ttPairsGrid"),
-    done: ttEl("ttPairsDone"), credit: ttEl("ttPairsCredit")
+    done: ttEl("ttPairsDone"), credit: ttEl("ttPairsCredit"),
+    tablesBtn: ttEl("ttPairsTablesBtn"), tablesDone: ttEl("ttPairsTablesDone")
   });
 
   // Game 2 Pop skin (tt_skin_pop_play). Builds its scene inside #ttPop.
