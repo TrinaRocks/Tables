@@ -426,8 +426,18 @@
 /* The photo is the BACKDROP, never dimmed or overlaid (Kath h13) — matched cards
    simply stop covering it. No translucent banner sits on top of it at any point. */
 .tt-pairs .tt-pairs-img { position:absolute; inset:0; width:100%; height:100%;
-  object-fit:cover; object-position:center; }
-.tt-pairs .tt-pairs-grid { position:absolute; inset:0; display:grid; gap:4px; padding:4px; }
+  object-fit:cover; object-position:center; z-index:0; }
+.tt-pairs .tt-pairs-grid { position:absolute; inset:0; display:grid; gap:4px; padding:4px; z-index:2; }
+/* h20 (Kath): the credit is PART OF THE PHOTO, in every orientation — inside the board,
+   bottom-right, dark text, painted between the photo (0) and the cards (2), so the cards sit
+   on top of it and it shows as they clear, like the photo itself. It SHRINKS but never hides —
+   CC BY / CC BY-SA attribution is a licence condition, not a layout nicety. (Supersedes h13's
+   "credit below the board, never over the photo".) */
+.tt-pairs .tt-pairs-credit { position:absolute; right:8px; bottom:3px; z-index:1; max-width:calc(100% - 16px);
+  font-size:8px; line-height:1.2; text-align:right; color:#1a1a1a; pointer-events:none; }
+/* ...light text where the photo is dark at that corner — per layout, because the crops differ
+   (TT_PAIRS_ANIMALS creditLight). Portrait here; the landscape query swaps to the -l flag. */
+.tt-pairs .tt-pairs-credit.tt-pairs-credit-light-p { color:#f2f2f2; }
 
 .tt-pairs .tt-pairs-card { display:flex; align-items:center; justify-content:center; text-align:center;
   background:#0e3a6a; border:2px solid #1a5090; border-radius:8px; color:#d0eeff;
@@ -443,11 +453,9 @@
 .tt-pairs .tt-pairs-card.wrong { background:#5a2430; border-color:#ffb347; }
 .tt-pairs .tt-pairs-card.matched { opacity:0; transform:scale(.5); pointer-events:none; }
 
-/* Completion sits BELOW the board with the credit — never over the photo. */
+/* Completion sits BELOW the board — never over the photo. */
 .tt-pairs .tt-pairs-done { flex:0 0 auto; min-height:20px; font-size:17px; font-weight:700;
   color:#40ffcc; text-align:center; }
-.tt-pairs .tt-pairs-credit { flex:0 0 auto; font-size:9px; color:#6f93b5; text-align:center;
-  line-height:1.2; min-height:11px; }
 
 /* h20: the "Tables" button + pop-up "Done" exist only for landscape phones (below). */
 .tt-pairs .tt-pairs-tables-btn, .tt-pairs .tt-pairs-tables-done { display:none; }
@@ -470,16 +478,6 @@
   .tt-pairs .tt-pairs-bar { grid-area:bar; width:auto; justify-content:flex-end; flex-wrap:nowrap; margin:0; }
   .tt-pairs .tt-pairs-done { grid-area:done; min-height:0; font-size:13px; line-height:13px; text-align:right; }   /* 13px fits under the bar without growing the row (h20: 17px pushed the board down 7px on "All done!") */
   .tt-pairs .tt-pairs-board { grid-area:board; align-self:stretch; height:100%; }
-  /* h20 (Kath): the credit is PART OF THE PHOTO — dark text, bottom-right, painted between
-     the photo and the cards, so the cards sit on top of it and it shows as they clear (like
-     the photo itself). No reserved strip: the cards use the full board. It SHRINKS but never
-     hides — CC BY / CC BY-SA attribution is a licence condition, not a layout nicety.
-     Layering: the board is not a stacking context, so photo (0) < credit (1) < cards (2)
-     all stack together. Same grid area as the board = overlaid on it. */
-  .tt-pairs .tt-pairs-img { z-index:0; }
-  .tt-pairs .tt-pairs-grid { z-index:2; }
-  .tt-pairs .tt-pairs-credit { grid-area:board; align-self:end; justify-self:end; position:relative; z-index:1;
-    font-size:8px; min-height:0; margin:0 8px 3px 0; color:#1a1a1a; pointer-events:none; }
   /* h20 (Kath): no room for the table chooser's two rows here (cards fell to 39px on a 667px
      phone) — it becomes a pop-up behind a "Tables" button in the top row. Same chips, same
      rules; the inline display:none (computer picks) still wins, so no chooser = no button. */
@@ -490,8 +488,8 @@
     background:#0a1a3a; border:1px solid #1a5090; box-shadow:0 6px 24px rgba(0, 0, 0, .6); }
   .tt-pairs #ttPairsTablesWrap.tt-open .tt-chip { height:34px; font-size:15px; }
   .tt-pairs .tt-pairs-tables-done { display:block; margin:8px auto 0; }
-  /* ...light text where the photo is dark at that corner (TT_PAIRS_ANIMALS creditLight, h20) */
-  .tt-pairs .tt-pairs-credit.tt-pairs-credit-light { color:#f2f2f2; }
+  .tt-pairs .tt-pairs-credit.tt-pairs-credit-light-p { color:#1a1a1a; }
+  .tt-pairs .tt-pairs-credit.tt-pairs-credit-light-l { color:#f2f2f2; }
 }
 
 /* ============================================================================
@@ -804,10 +802,12 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     </div>
     <div class="tt-pairs-board">
       <img id="ttPairsImg" class="tt-pairs-img" alt="">
+      <!-- h20 (Kath): the credit is PART OF THE PHOTO in every orientation — inside the board,
+           painted between the photo and the cards -->
+      <div id="ttPairsCredit" class="tt-pairs-credit"></div>
       <div id="ttPairsGrid" class="tt-pairs-grid"></div>
     </div>
     <div id="ttPairsDone" class="tt-pairs-done"></div>
-    <div id="ttPairsCredit" class="tt-pairs-credit"></div>
   </section>
 
   <!-- GAME 2 · Pop (Class C chillout). Full-viewport cave scene; the skin builds
@@ -4293,29 +4293,32 @@ if (typeof module !== "undefined" && module.exports) {
 // other board shapes need, which is what clipped the goat in landscape. Pick a new
 // photo's focal point ONCE; never edit the image. Design §12.
 //
-// `creditLight: true` (h20, Kath): in landscape the credit is printed ON the photo, bottom-right,
-// in dark text — except where the photo is dark there, which gets light text. Measured, not
-// eyeballed: mean luminance under the credit box at both landscape board sizes, light if < ~115
-// (dolphin_leap 100/111 counts as dark; bunny 119-121 and hedgehog 114-121 stay dark text).
+// `creditLight` (h20, Kath): the credit is printed ON the photo, bottom-right, in dark text —
+// except where the photo is dark there: true = light text in both layouts, "landscape" /
+// "portrait" = only in that layout (the two crops differ: the rat is dark under the credit in
+// landscape, light in portrait). Measured, not eyeballed: mean luminance under the credit box
+// at the landscape boards (828x282, 651x255) and portrait boards (355x512, 355x420, 460x560);
+// light text below ~110-115 (where the two inks' contrast crosses). Borderline, left dark:
+// piglet portrait (105-132), hedgehog landscape (114-121). Re-measure for any new photo.
 var TT_PAIRS_ANIMALS = [
   { src: "images/panda.jpg", creditLight: true, alt: "Baby panda cub", credit: "Sheila Lau, public domain, via Wikimedia Commons" },
-  { src: "images/bunny.jpg", alt: "Baby rabbit", credit: "Siddharth Patil, CC0, via Wikimedia Commons", focal: [0.62, 0.30] },   // rabbit sits right of centre, low in the grass
+  { src: "images/bunny.jpg", creditLight: "portrait", alt: "Baby rabbit", credit: "Siddharth Patil, CC0, via Wikimedia Commons", focal: [0.62, 0.30] },   // rabbit sits right of centre, low in the grass
   { src: "images/fox.jpg", creditLight: true, alt: "Young red fox", credit: "CC0, via Wikimedia Commons" },
   { src: "images/kitten.jpg", creditLight: true, alt: "Curious kitten", credit: "Dimitri Houtteman, CC0, via Wikimedia Commons" },
-  { src: "images/puppy.jpg", alt: "Puppy in leaves", credit: "C. E. Price, public domain, via Wikimedia Commons" },
+  { src: "images/puppy.jpg", creditLight: "portrait", alt: "Puppy in leaves", credit: "C. E. Price, public domain, via Wikimedia Commons" },
   { src: "images/piglet.jpg", alt: "Piglet", credit: "Petr Kratochvil, CC0, via Wikimedia Commons", focal: [0.5, 0.35] },   // portrait source: head high in a wide strip
   { src: "images/chick_duckling.jpg", alt: "Chick and duckling", credit: "CDC, public domain, via Wikimedia Commons", focal: [0.5, 0.18] },   // portrait source: both heads near the top
   { src: "images/lamb.jpg", creditLight: true, alt: "Lamb", credit: "Virginie Moerenhout, CC BY 2.0, via Wikimedia Commons", focal: [0.5, 0.15] },   // portrait source: head near the top
   { src: "images/elephant.jpg", creditLight: true, alt: "Elephant calf with mother", credit: "Tontan Travel, CC BY-SA 2.0, via Wikimedia Commons" },
   // goat sits in the left third of its frame; rat: frames the right-hand rat
   { src: "images/goat.jpg", alt: "Young goat jumping", credit: "Wilfredor, CC0, via Wikimedia Commons", focal: [0.19, 0.49] },
-  { src: "images/rat.jpg", creditLight: true, alt: "Young pet rat", credit: "Sarah Fleming (SMercury98), CC BY 2.0, via Wikimedia Commons", focal: [0.94, 0.58] },
+  { src: "images/rat.jpg", creditLight: "landscape", alt: "Young pet rat", credit: "Sarah Fleming (SMercury98), CC BY 2.0, via Wikimedia Commons", focal: [0.94, 0.58] },
   { src: "images/hedgehog.jpg", alt: "Young hedgehog", credit: "Tony Wills, CC BY-SA 3.0, via Wikimedia Commons", focal: [0.5, 0.40] },   // portrait-ish source, subject above centre
   // h18 (Kath): dolphins. Young: in a narrow (portrait) crop the BABIES are the focus, not the
   // mother — the two calves span x 0.17–0.55, y 0.45–0.80 of the frame.
   { src: "images/dolphin_young.jpg", alt: "Dolphin mother with two young", credit: "Peter Asprey, CC BY-SA 3.0, via Wikimedia Commons", focal: [0.27, 0.62] },
   { src: "images/dolphin_wake.jpg", creditLight: true, alt: "Dolphin riding a boat's wake", credit: "NASA, public domain, via Wikimedia Commons" },
-  { src: "images/dolphin_leap.jpg", creditLight: true, alt: "Leaping dolphin", credit: "Craig Wallace, CC BY-SA 2.0, via Wikimedia Commons" }
+  { src: "images/dolphin_leap.jpg", creditLight: "landscape", alt: "Leaping dolphin", credit: "Craig Wallace, CC BY-SA 2.0, via Wikimedia Commons" }
 ];
 
 // This project's difficulty groups (TT_GROUPS), NOT the exemplar's level sets.
@@ -4481,7 +4484,9 @@ function ttMakePairs(els) {
     els.img.style.objectPosition = animal.focal
       ? (animal.focal[0] * 100) + "% " + (animal.focal[1] * 100) + "%" : "";
     els.credit.textContent = "Photo: " + animal.alt + " — " + animal.credit;
-    els.credit.classList.toggle("tt-pairs-credit-light", !!animal.creditLight);   // only styled in landscape (on the photo)
+    var cl = animal.creditLight;
+    els.credit.classList.toggle("tt-pairs-credit-light-l", cl === true || cl === "landscape");   // tt_skin_pairs.css picks
+    els.credit.classList.toggle("tt-pairs-credit-light-p", cl === true || cl === "portrait");    // by the layout in use
 
     var cards = ttPairsDeal(entries);
     els.grid.innerHTML = "";
