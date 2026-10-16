@@ -45,6 +45,7 @@
   .tt-h { font-size: 26px; font-weight: 700; margin: 0 0 6px; color: var(--blue-dark); }
   .tt-choice { font-size: 22px; font-weight: 600; padding: 16px 26px; border-radius: 16px; border: 1px solid var(--grey); background: var(--card); color: var(--ink); cursor: pointer; min-width: 260px; }
   .tt-choice:active { background: #e3eefc; }
+  .tt-build-stamp { font-size: 11px; opacity: .55; margin-top: 4px; }   /* h20: filled by build.sh build_stamp */
   .tt-subtle { font-size: 16px; font-weight: 600; padding: 8px 16px; border-radius: 12px; border: 1px solid var(--grey); background: var(--card); color: var(--blue-dark); cursor: pointer; }
 
   /* S0 players + avatar picker (each avatar has a NAME to aid memory) */
@@ -308,6 +309,13 @@
    The slot stacks note over card; the card stays centred and top-anchored. */
 .tt-drill .tt-scaffold-slot:has(.tt-scaffold-note) { flex-direction:column; align-items:center; justify-content:flex-start; row-gap:4px; }
 .tt-drill .tt-scaffold-slot:has(.tt-scaffold-note) > .tt-scaffold { align-self:center; }
+/* h22 (Kath): OK under every scaffold — same colour/squareness as the keypad tiles, a full finger target */
+/* ABSOLUTE at the slot's foot, in padding reserved for it: the card is scaled by transform, which leaves its
+   layout box at full size, so an in-flow OK would be pushed out of the slot and clipped (measured h22). */
+.tt-drill .tt-scaffold-slot:has(.tt-scaffold-ok) { position:relative; padding-bottom:64px; }
+.tt-drill .tt-scaffold-ok { position:absolute; bottom:6px; /* top is set by fit() to sit under the card */ left:50%; transform:translateX(-50%); border:none; border-radius:7px; padding:10px 34px; font-size:20px; font-weight:700; font-family:inherit;
+  background:#0e3a6a; color:#d0eeff; cursor:pointer; }
+.tt-drill .tt-scaffold-ok:active { background:#2060b0; }
 .tt-drill .tt-scaffold-note { flex:none; font-size:17px; font-weight:bold; line-height:1.2; color:#d0eeff; text-align:center; }   /* not orange: orange means "wrong" in this skin */
 
 /* Help me out — same colour AND squareness as the keypad tiles (radius 7px, not a pill) */
@@ -695,6 +703,161 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 }
 /* ==== CSS tt_skin_practice.css [END] ==== */
 </style>
+<style>
+/* ==== CSS tt_skin_builder.css [BEGIN] ==== */
+/* ============================================================================
+   tt_skin_builder.css — Game 5 "Reef Builder" presentation.
+   ONE screen: the reef dock (#ttBuilderDock) sits above the ordinary Quiz play elements, which are
+   RESTYLED here so the game does not look like Quiz (Kath h22: same questions, different look).
+   Every rule is scoped under #ttPlay.tt-bd-on (set by the builder player), so Quiz is untouched.
+   Palette from the Builder prototype: deep reef navy, blue-lined panels, pearl white, warm gold.
+   Layout: portrait = column (dock, question, input, help); landscape (the shell's query: phone
+   landscape or touch tablet) = grid — dock LEFT, question middle, input RIGHT.
+   ============================================================================ */
+
+.tt-bd-dock, .tt-bd-shop, #ttPlay.tt-bd-on {
+  --bd-panel:#0e2a5a; --bd-panel2:#14386f; --bd-line:#2a6a9a; --bd-ink:#e8f4ff; --bd-dim:#8fb4d8;
+  --bd-pearl:#f4efe6; --bd-ok:#5fd6a0; --bd-warn:#ffc34d; --bd-accent:#cc5588;
+}
+.tt-bd-pearl { display:inline-block; width:16px; height:16px; border-radius:50%; flex:none;
+  background:radial-gradient(circle at 35% 30%,#fff 0,var(--bd-pearl) 40%,#c9bfae 100%); box-shadow:0 0 6px rgba(255,255,255,.5); }
+.tt-bd-pearls { display:flex; align-items:center; gap:6px; background:var(--bd-panel); border:1px solid var(--bd-line); border-radius:20px;
+  padding:3px 12px 3px 7px; font-size:18px; font-weight:700; color:var(--bd-ink); transition:transform .2s; flex:none; }
+.tt-bd-pearls.bump { transform:scale(1.18); }
+
+/* --- the dock ------------------------------------------------------------------ */
+.tt-bd-dock { display:none; width:100%; flex-direction:column; align-items:center; gap:6px; color:var(--bd-ink); }
+#ttPlay.tt-bd-on .tt-bd-dock { display:flex; }
+.tt-bd-head { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding-left:52px; }   /* clears the back button */
+.tt-bd-pips { display:flex; gap:5px; flex:1 1 auto; justify-content:center; }
+.tt-bd-pips i { width:10px; height:10px; border-radius:50%; border:1.5px solid var(--bd-line); transition:background .3s; }
+.tt-bd-pips i.on { background:var(--bd-pearl); border-color:var(--bd-pearl); }
+.tt-bd-pips i.k { border-radius:3px; transform:rotate(45deg) scale(.85); }
+.tt-bd-pips i.k.on { background:var(--bd-warn); border-color:var(--bd-warn); }
+.tt-bd-pips i.pop { animation:tt-bd-pip .6s ease-out; }
+@keyframes tt-bd-pip { 40% { scale:1.7; } }
+.tt-bd-shopbtn { flex:none; padding:7px 16px; border:1px solid var(--bd-line); background:var(--bd-panel); color:var(--bd-ink); border-radius:16px;
+  font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; }
+.tt-bd-shopbtn.sel { background:var(--bd-accent); border-color:var(--bd-accent); }
+.tt-bd-scene { display:flex; justify-content:center; width:100%; }
+.tt-bd-cv { width:min(100%, max(220px, calc((var(--tt-vh, 100vh) - 430px) * 4 / 3))); aspect-ratio:4/3; border-radius:12px; border:1px solid var(--bd-line);
+  touch-action:none; background:#0a1e48; display:block; }
+.tt-bd-edit { display:none; align-items:center; justify-content:space-between; gap:8px; width:100%; background:var(--bd-panel2); border:1px solid var(--bd-ok);
+  border-radius:12px; padding:4px 10px; font-size:13px; }
+.tt-bd-edit.on { display:flex; }
+.tt-bd-done { padding:5px 14px; border:0; border-radius:8px; background:var(--bd-ok); color:#052a1a; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+.tt-bd-note { font-size:14px; color:var(--bd-pearl); text-align:center; }
+.tt-bd-note:empty { display:none; }
+.tt-bd-tray { display:none; align-items:center; justify-content:center; gap:8px; width:100%; background:var(--bd-panel2); border:1px dashed var(--bd-warn);
+  border-radius:12px; padding:4px 10px; flex-wrap:wrap; }
+.tt-bd-tray.on { display:flex; }
+.tt-bd-tray small { color:var(--bd-warn); font-weight:600; }
+.tt-bd-chip { border:2px solid transparent; background:var(--bd-panel); border-radius:10px; padding:2px; cursor:pointer; }
+.tt-bd-chip.sel { border-color:var(--bd-warn); background:#274a86; }
+.tt-bd-chip canvas { display:block; width:40px; height:40px; }
+
+/* --- shop: a card over the screen ------------------------------------------------- */
+.tt-bd-shopcard { background:#0e2a5a; color:var(--bd-ink); border:1px solid var(--bd-line); width:min(92vw, 420px); }
+.tt-bd-shelf { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
+.tt-bd-item { background:var(--bd-panel2); border:1px solid var(--bd-line); border-radius:12px; padding:6px; display:flex; flex-direction:column; align-items:center; gap:2px;
+  cursor:pointer; color:var(--bd-ink); font-size:13px; text-align:center; }
+.tt-bd-item canvas { width:56px; height:56px; }
+.tt-bd-pr { display:flex; align-items:center; gap:4px; font-weight:700; }
+.tt-bd-pr .tt-bd-pearl { width:12px; height:12px; }
+.tt-bd-item.no { opacity:.45; cursor:default; }
+.tt-bd-shopnote { font-size:12px; color:var(--bd-dim); text-align:center; }
+
+/* --- the page: reef-deep, not Quiz navy --------------------------------------------- */
+#ttPlay.tt-bd-on { justify-content:flex-start; gap:8px; padding-top:6px; padding-bottom:10px; color:var(--bd-ink);
+  background:linear-gradient(#081638, #0a1e48 60%, #0c2858); }
+#ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:min(100%, 210px); }   /* a caption/array is up: the reef steps back, the working gets the room */
+
+/* --- the Quiz elements, restyled (same questions, different look) -------------------- */
+#ttPlay.tt-bd-on .tt-question { font-size:34px; font-weight:700; color:var(--bd-ink); min-height:0; letter-spacing:1px;
+  background:var(--bd-panel); border:1px solid var(--bd-line); border-radius:14px; padding:6px 16px; margin:0; }
+#ttPlay.tt-bd-on .tt-inline-entry { background:#0a1e48; border:2px solid var(--bd-line); border-radius:10px; color:var(--bd-ink); }
+#ttPlay.tt-bd-on .tt-inline-entry.correct { border-color:var(--bd-ok); color:var(--bd-ok); }
+#ttPlay.tt-bd-on .tt-feedback { font-size:20px; min-height:26px; margin:0; color:var(--bd-pearl); }
+#ttPlay.tt-bd-on .tt-fb-correct { color:var(--bd-ok); }
+#ttPlay.tt-bd-on .tt-fb-corrective { color:var(--bd-warn); }
+#ttPlay.tt-bd-on .tt-key, #ttPlay.tt-bd-on .tt-tile { background:var(--bd-panel); border:1px solid var(--bd-line); border-radius:12px; color:var(--bd-ink); }
+#ttPlay.tt-bd-on .tt-key:active, #ttPlay.tt-bd-on .tt-tile:active { background:var(--bd-panel2); }
+#ttPlay.tt-bd-on .tt-pad { margin-top:2px; grid-template-columns:repeat(3, minmax(64px, 84px)); }
+#ttPlay.tt-bd-on .tt-key { height:44px; }
+#ttPlay.tt-bd-on .tt-help { background:transparent; border:1px solid var(--bd-line); border-radius:16px; color:var(--bd-dim); padding:8px 18px; margin-top:0; }
+#ttPlay.tt-bd-on .tt-scaffold-replay { background:var(--bd-panel); color:var(--bd-ink); }
+#ttPlay.tt-bd-on .tt-scaffold-ok { background:var(--bd-ok); color:#052a1a; border-radius:12px; }
+
+/* h22 (Kath): portrait — the reef dock leaves a short phone almost no room, so while a scaffold is up it takes the
+   tiles'/keypad's space instead of being squeezed to nothing (measured 375x667: slot collapsed to its padding).
+   OK (or the next question) brings the input back; typing from a keyboard still works meanwhile. */
+@media (orientation:portrait) {
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input { display:none; }
+}
+@media (orientation:portrait) and (max-height:740px) {   /* short phone: the reef steps back further while the working is up */
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:min(100%, 130px); }
+}
+
+/* --- landscape (phone landscape + touch tablets: same query as the other games) -------- */
+/* h22 (Kath): ALSO any wide landscape window (desktop browser) — the 480px portrait column wasted the screen. */
+@media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (pointer:coarse), (orientation:landscape) and (min-width:700px) {
+  #app:has(#ttPlay.tt-bd-on) { max-width:none; padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
+  #ttPlay.tt-bd-on { display:grid; align-items:center; justify-items:center; gap:6px 12px; padding:6px 10px 6px 12px;
+    height:var(--tt-vh, 100vh); min-height:0; overflow:hidden;
+    grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:auto auto minmax(0,1fr) auto;
+    grid-template-areas:"dock question input" "dock feedback input" "dock array input" "dock array help"; }
+  #ttPlay.tt-bd-on .tt-bd-dock { grid-area:dock; align-self:start; width:min(40vw, calc((var(--tt-vh, 100vh) - 76px) * 4 / 3)); }
+  #ttPlay.tt-bd-on .tt-bd-cv { width:100%; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:100%; }
+  #ttPlay.tt-bd-on .tt-question { grid-area:question; font-size:26px; padding:4px 10px; }
+  #ttPlay.tt-bd-on .tt-feedback { grid-area:feedback; text-align:center; }
+  #ttPlay.tt-bd-on .tt-scaffold-slot { grid-area:array; align-self:stretch; height:100%; width:100%; overflow:hidden; max-height:none; }
+  #ttPlay.tt-bd-on .tt-help { grid-area:help; }
+  #ttPlay.tt-bd-on .tt-input { grid-area:input; width:auto; height:100%; }
+  #ttPlay.tt-bd-on .tt-tiles { flex-flow:column wrap; width:auto; height:100%; justify-content:space-between; align-content:center; gap:6px; }
+  #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many { display:grid; grid-auto-flow:column; grid-template-columns:none;
+    grid-template-rows:repeat(var(--tt-tile-half, 6), minmax(0, 1fr)); width:auto; height:100%; gap:6px 8px; }
+  #ttPlay.tt-bd-on .tt-keypad { justify-content:center; height:100%; }
+  #ttPlay.tt-bd-on .tt-pad { grid-template-columns:repeat(3, 56px); gap:5px; }
+  #ttPlay.tt-bd-on .tt-key { height:42px; }
+  .tt-bd-shelf { grid-template-columns:repeat(3,1fr); }
+}
+/* h22 (Kath, PC browser): tall + wide = the answer is quick to give. Right-hand column reads TOP TO BOTTOM:
+   big question with a big answer box, the tiles/keypad directly under it, then (when up) the scaffold, then
+   help. The scaffold has its OK; pressing it clears the way back to the input. */
+@media (orientation:landscape) and (min-width:700px) and (min-height:601px) {
+  #ttPlay.tt-bd-on { gap:10px 28px; padding:10px 28px 14px 12px; align-items:start; justify-items:center;
+    grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto auto minmax(0,1fr);
+    grid-template-areas:"dock question" "dock input" "dock help" "dock feedback" "dock array"; }
+  #ttPlay.tt-bd-on .tt-bd-dock { grid-row:1 / -1; width:min(50vw, calc((var(--tt-vh, 100vh) - 90px) * 4 / 3)); }
+  #ttPlay.tt-bd-on .tt-question { font-size:clamp(44px, 5vw, 76px); padding:10px clamp(18px, 2.4vw, 40px); border-radius:20px; margin-top:6px; }
+  #ttPlay.tt-bd-on .tt-inline-entry { border-width:4px; border-radius:20px; min-width:1.7em; }
+  #ttPlay.tt-bd-on .tt-feedback { font-size:24px; min-height:0; }
+  #ttPlay.tt-bd-on .tt-input { grid-area:input; width:100%; height:auto; align-self:start; }
+  /* tiles: rows under the question, not a column */
+  #ttPlay.tt-bd-on .tt-tiles { flex-flow:row wrap; width:100%; height:auto; justify-content:center; align-content:flex-start; gap:12px; }
+  #ttPlay.tt-bd-on .tt-tiles .tt-tile { min-width:84px; height:68px; font-size:28px; padding:0 14px; }
+  #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many { display:grid; grid-auto-flow:row; grid-template-rows:none; grid-auto-columns:auto;
+    grid-template-columns:repeat(var(--tt-tile-half, 6), minmax(0, 1fr)); width:100%; max-width:760px; height:auto; gap:12px; }
+  #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many .tt-tile { min-width:0; padding:0; font-size:26px; }
+  /* keypad: bigger keys */
+  #ttPlay.tt-bd-on .tt-keypad { height:auto; justify-content:flex-start; }
+  #ttPlay.tt-bd-on .tt-pad { grid-template-columns:repeat(3, 104px); gap:10px; margin-top:0; }
+  #ttPlay.tt-bd-on .tt-key { height:68px; font-size:30px; }
+  #ttPlay.tt-bd-on .tt-scaffold-ok { padding:12px 44px; font-size:22px; }
+  /* h22 (Kath): while a scaffold is up it takes the room the tiles/keypad had (the dots would otherwise be tiny
+     in the leftover space). The input is hidden — typing still works from the keyboard — and OK brings it back. */
+  #ttPlay.tt-bd-on:has(.tt-scaffold) { grid-template-rows:auto minmax(0,1fr) auto;
+    grid-template-areas:"dock question" "dock scaf" "dock help"; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback { display:none; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-scaffold-slot { grid-area:scaf; align-self:stretch; justify-self:stretch; height:100%; width:100%; max-height:none; overflow:hidden; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tt-bd-pips i.pop { animation:none; }
+  .tt-bd-pearls { transition:none; }
+}
+/* ==== CSS tt_skin_builder.css [END] ==== */
+</style>
 </head>
 <body>
 <div id="app">
@@ -712,6 +875,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     <h1 class="tt-h">Games</h1>
     <button id="ttPairsBtn" class="tt-choice tt-game" type="button" data-game="1">Pairs</button>
     <button id="ttPopBtn" class="tt-choice tt-game" type="button" data-game="2">Pop</button>
+    <button id="ttBuilderBtn" class="tt-choice tt-game" type="button" data-game="5">Reef Builder</button>
     <button id="ttDrill" class="tt-choice tt-game" type="button" data-game="3">Quiz</button>
     <button id="ttPracticeBtn" class="tt-choice tt-game" type="button" data-game="4">Practice</button>
     <button id="ttMapBtn" class="tt-choice" type="button">My map</button>
@@ -730,6 +894,8 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     </div>
     <button id="ttSettingsDone" class="tt-choice" type="button">Games</button>
     <button id="ttAdultLink" class="tt-subtle" type="button">adult settings</button>
+    <!-- h20 (Kath): which build is loaded — quote it with device reports. Filled by build.sh. -->
+    <div class="tt-build-stamp">build 8162cb · 2026-10-16 17:02</div>
   </section>
 
   <section id="ttAdult" class="tt-screen" style="display:none">
@@ -765,6 +931,9 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   </section>
 
   <section id="ttPlay" class="tt-screen tt-drill tt-play" style="display:none">
+    <!-- GAME 5 · Reef Builder: the reef dock (pearls, pips, Shop, scene, tray) — filled by tt_skin_builder_play.js,
+         visible only in builder mode; the Quiz elements below it are restyled by tt_skin_builder.css. -->
+    <div id="ttBuilderDock" class="tt-bd-dock" style="display:none"></div>
     <div id="ttQuestion" class="tt-question"></div>
     <div id="ttFeedback" class="tt-feedback"></div>
     <!-- scaffold: WHITE panel IN-FLOW so the entry box + pad below stay reachable (game3_design LAYOUT LAW) -->
@@ -3740,7 +3909,7 @@ function ttMountFeedback(el) {
 // (tt_scaffold.js) + ttPlayScaffold (tt_scaffold_play.js). info = {a,b,op,level}.
 // The corrective/copy-to-proceed GATE lives in tt_flow; this only renders + replays.
 function ttMountScaffold(el) {
-  var handle = null, wrap = null, onResize = null, noteEl = null;
+  var handle = null, wrap = null, onResize = null, noteEl = null, okEl = null;
   // h20: the slot's box also changes WITHOUT a window resize (portrait flex-shrink: the
   // "Show me why" button hiding, feedback text arriving) — watch the slot itself.
   // fit() only sets a transform, which never changes the slot's box, so no loop.
@@ -3757,6 +3926,7 @@ function ttMountScaffold(el) {
     wrap.style.transform = "";                                  // measure natural size unscaled
     var availW = el.clientWidth, availH = el.clientHeight;
     if (noteEl) availH -= noteEl.offsetHeight + (parseFloat(getComputedStyle(el).rowGap) || 0);   // the note sits above the card
+    if (okEl) availH -= parseFloat(getComputedStyle(el).paddingBottom) || 0;                    // the OK sits in the slot's bottom padding
     // Measure the PANEL (the real content), NOT the wrap: the wrap is a flex item
     // in the slot and gets stretched to the slot's clamped height, so its
     // offsetHeight reports the CLAMP (availH), not the content — which made fit()
@@ -3771,6 +3941,10 @@ function ttMountScaffold(el) {
     // too-tall panel shrinks UP into view (center-origin would push its bottom out).
     wrap.style.transformOrigin = "center top";
     wrap.style.transform = s < 1 ? "scale(" + s + ")" : "";
+    // h22: the OK sits just under the card AS DRAWN (scaled), not at the slot's foot — a small caption in a tall
+    // slot would otherwise leave it stranded far below. Capped so it never leaves the slot.
+    if (okEl) okEl.style.bottom = "auto";
+    if (okEl) okEl.style.top = Math.round(Math.min(wrap.offsetTop + h * s + 6, el.clientHeight - okEl.offsetHeight - 12)) + "px";
   }
   return {
     show: function (info) {
@@ -3792,7 +3966,7 @@ function ttMountScaffold(el) {
       // info.note (h20, Kath): a one-line signpost ("Swap trick…") JUST ABOVE the card, OUTSIDE
       // the scaled wrap — inside it, it shrank with the array (~10px on a phone). Full size, in
       // the gap between the question and the card; fit() gives the card what is left.
-      noteEl = null;
+      noteEl = null; okEl = null;
       if (info.note) {
         noteEl = document.createElement("div");
         noteEl.className = "tt-scaffold-note";
@@ -3800,6 +3974,16 @@ function ttMountScaffold(el) {
         el.appendChild(noteEl);
       }
       el.appendChild(wrap);
+      // h22: the card GROWS after show() (the caption/array animate in), so watch it too — the OK is placed from its size.
+      if (slotObserver) { slotObserver.disconnect(); slotObserver.observe(el); slotObserver.observe(wrap); }
+      // info.onOk (h22, Kath): after a Help me out / Show me / correction the child needs a visible way to
+      // carry on. OK takes the scaffold away so the box is simply there to type in. Full size, OUTSIDE the
+      // scaled wrap (like the note), so it stays a finger target on a shrunk card.
+      if (info.onOk) {
+        okEl = document.createElement("button"); okEl.type = "button"; okEl.className = "tt-scaffold-ok"; okEl.textContent = "OK";
+        okEl.addEventListener("click", function () { info.onOk(); });
+        el.appendChild(okEl);
+      }
       var script = ttBuildScaffold({ a: info.a, b: info.b, op: info.op, level: info.level, unknown: info.unknown,
                                      lead: info.lead });
       // onDone (h15): the copy-to-proceed hint must not be armed until the count has
@@ -3819,7 +4003,7 @@ function ttMountScaffold(el) {
     hint: function (on) { el.classList.toggle("tt-hint", !!on); },
     clear: function () {
       if (typeof window !== "undefined" && onResize) { window.removeEventListener("resize", onResize); onResize = null; }
-      if (handle) { handle.destroy(); handle = null; } wrap = null; noteEl = null; el.innerHTML = ""; el.style.display = "none";
+      if (handle) { handle.destroy(); handle = null; } if (slotObserver) { slotObserver.disconnect(); slotObserver.observe(el); } wrap = null; noteEl = null; okEl = null; el.innerHTML = ""; el.style.display = "none";
       el.classList.remove("tt-hint");
     }
   };
@@ -5728,6 +5912,637 @@ function ttMakePractice(el) {
 // ==== MODULE tt_skin_practice_play.js [END] ====
 </script>
 <script>
+// ==== MODULE tt_skin_builder.js [BEGIN] ====
+// ============================================================================
+// tt_skin_builder.js — Game 5 "Reef": PURE rules (no DOM)
+// ----------------------------------------------------------------------------
+// Taken from the Builder prototype (Small maths games/Builder/reef_builder.html). The child
+// practises in the ordinary Quiz drill (Class D — full evidence, keypad rungs included); the
+// reef is a REWARD LAYER over the engine's own progress, never a second mastery store (D1/D2):
+//   • pearls   — paid when a fact's CONFIRMED rung goes up (R1..R8; tile rungs 1, keypad rungs 2)
+//   • a table  — complete when every fact of it is confirmed at R6+ (keypad recall begins):
+//                tables 2–5 build a structure, 6–12 give a creature (tray, then placed by hand)
+//   • the reef — pearls, bought + gifted pieces, their positions: one record PER PLAYER, host-stored
+// Rewards are RECONCILED from the engine's current state (tt_getFactStates), so progress made in
+// Quiz / Pairs / Pop counts too, and a Builder player's first visit catches up on everything earned.
+// `paid` is a per-fact HIGH-WATER mark: a demotion never claws pearls back and re-climbing never
+// pays twice (no farming). `done` is sticky: a table already completed stays completed if the
+// range later grows (12) and adds facts to it.
+// The DOM/canvas player is tt_skin_builder_play.js.
+// ============================================================================
+
+var TT_BUILDER_RUNG_PEARLS = [0, 1, 1, 1, 1, 1, 2, 2, 2];   // index = the rung just reached (R1..R8)
+var TT_BUILDER_MASTERED_RUNG = 6;                           // a fact counts toward its table at R6 (keypad recall)
+var TT_BUILDER_MAX_RUNG = 8;
+var TT_BUILDER_W = 480, TT_BUILDER_H = 360;                 // scene units
+var TT_BUILDER_FT = Math.round(TT_BUILDER_H * 0.6);         // top of the floor band
+
+// Tables 2–5 build a big structure at a fixed anchor [x, y] (base-centre). name = child-facing.
+var TT_BUILDER_STRUCTS = {
+  2: { name: "home cave",    anchor: [84, TT_BUILDER_H] },
+  3: { name: "overhang",     anchor: [440, TT_BUILDER_H] },
+  4: { name: "rock arch",    anchor: [292, TT_BUILDER_FT + 2] },
+  5: { name: "lantern rock", anchor: [190, TT_BUILDER_FT + 4] },
+};
+// Tables 6–12 give a creature / piece (goes to the tray; the child places it).
+var TT_BUILDER_GIFTS = {
+  6:  { id: "seahorse", name: "Seahorse" },
+  7:  { id: "jelly",    name: "Jellyfish" },
+  8:  { id: "turtle",   name: "Turtle" },
+  9:  { id: "ship",     name: "Sunken ship" },
+  10: { id: "clam",     name: "Pearl clam" },
+  11: { id: "manta",    name: "Manta ray" },
+  12: { id: "whale",    name: "Whale" },
+};
+// The shop. Prices are pearls and never change; a fact pays up to 11 (sum of RUNG_PEARLS).
+var TT_BUILDER_CAT = [
+  { id: "seagrass",    name: "Seagrass",       price: 8,  kind: "floor" },
+  { id: "coralPink",   name: "Pink coral",     price: 12, kind: "floor" },
+  { id: "shell",       name: "Shell",          price: 12, kind: "floor" },
+  { id: "fan",         name: "Fan coral",      price: 18, kind: "floor" },
+  { id: "starfish",    name: "Starfish",       price: 18, kind: "floor" },
+  { id: "coralOrange", name: "Branch coral",   price: 18, kind: "floor" },
+  { id: "fish",        name: "Blue fish",      price: 25, kind: "swim" },
+  { id: "anemone",     name: "Anemone",        price: 30, kind: "floor" },
+  { id: "clown",       name: "Clownfish",      price: 36, kind: "swim" },
+  { id: "crab",        name: "Crab",           price: 36, kind: "floor" },
+  { id: "puffer",      name: "Pufferfish",     price: 50, kind: "swim" },
+  { id: "chest",       name: "Treasure chest", price: 60, kind: "floor" },
+  { id: "lantern",     name: "Glow coral",     price: 70, kind: "floor" },
+];
+
+// id → {id, name, kind} for EVERYTHING that can sit in a reef (shop, gifts, structures).
+function ttBuilderItemDefs() {
+  var d = {};
+  TT_BUILDER_CAT.forEach(function (c) { d[c.id] = { id: c.id, name: c.name, kind: c.kind, price: c.price }; });
+  var swimmers = { seahorse: 1, jelly: 1, turtle: 1, manta: 1, whale: 1 };
+  Object.keys(TT_BUILDER_GIFTS).forEach(function (t) {
+    var g = TT_BUILDER_GIFTS[t]; d[g.id] = { id: g.id, name: g.name, kind: swimmers[g.id] ? "swim" : "floor", gift: +t };
+  });
+  Object.keys(TT_BUILDER_STRUCTS).forEach(function (t) {
+    d["st" + t] = { id: "st" + t, name: TT_BUILDER_STRUCTS[t].name, kind: "big", table: +t };
+  });
+  return d;
+}
+var TT_BUILDER_DEFS = ttBuilderItemDefs();
+
+// --- the per-player record ---------------------------------------------------
+function ttBuilderFresh() {
+  return { edit: false, lastPlaced: null, pearls: 0, placed: [], tray: [], nextId: 1, shelfSeed: 1, paid: {}, done: {} };
+}
+function _tbNum(v, d) { return typeof v === "number" && isFinite(v) ? v : d; }
+// Anything read from storage goes through here: wrong shapes fall back, unknown piece types are dropped.
+function ttBuilderNormalize(raw) {
+  var st = ttBuilderFresh();
+  if (!raw || typeof raw !== "object") return st;
+  st.edit = !!raw.edit;
+  st.pearls = Math.max(0, Math.floor(_tbNum(raw.pearls, 0)));
+  st.nextId = Math.max(1, Math.floor(_tbNum(raw.nextId, 1)));
+  st.shelfSeed = Math.max(1, Math.floor(_tbNum(raw.shelfSeed, 1)));
+  st.lastPlaced = typeof raw.lastPlaced === "number" ? raw.lastPlaced : null;
+  if (raw.paid && typeof raw.paid === "object") for (var k in raw.paid) {
+    var r = Math.floor(_tbNum(raw.paid[k], 0)); if (r > 0) st.paid[k] = Math.min(r, TT_BUILDER_MAX_RUNG);
+  }
+  if (raw.done && typeof raw.done === "object") for (var t in raw.done) if (raw.done[t]) st.done[t] = 1;
+  (Array.isArray(raw.placed) ? raw.placed : []).forEach(function (it) {
+    if (!it || !TT_BUILDER_DEFS[it.type]) return;
+    st.placed.push({ id: Math.floor(_tbNum(it.id, 0)), type: it.type, x: _tbNum(it.x, 0), y: _tbNum(it.y, 0), on: typeof it.on === "number" ? it.on : null });
+    st.nextId = Math.max(st.nextId, st.placed[st.placed.length - 1].id + 1);
+  });
+  (Array.isArray(raw.tray) ? raw.tray : []).forEach(function (it) {
+    if (!it || !TT_BUILDER_DEFS[it.type]) return;
+    st.tray.push({ id: Math.floor(_tbNum(it.id, 0)), type: it.type });
+    st.nextId = Math.max(st.nextId, st.tray[st.tray.length - 1].id + 1);
+  });
+  return st;
+}
+
+// --- rewards -------------------------------------------------------------------
+function ttBuilderPearlsFor(from, to) {            // pearls for climbing from rung `from` up to rung `to`
+  var n = 0;
+  for (var r = from + 1; r <= to && r <= TT_BUILDER_MAX_RUNG; r++) n += TT_BUILDER_RUNG_PEARLS[r];
+  return n;
+}
+// Build a table's structure at its anchor (idempotent: one per table).
+function ttBuilderPlaceStructure(st, T) {
+  var s = TT_BUILDER_STRUCTS[T];
+  if (!s || st.placed.some(function (i) { return i.type === "st" + T; })) return false;
+  st.placed.push({ id: st.nextId++, type: "st" + T, x: s.anchor[0], y: s.anchor[1], on: null });
+  return true;
+}
+// Pay every promotion since the last reconcile and complete any table that is now ready.
+//   facts: [{key,a,b,confirmedRung}] from the engine's read accessor (tt_getFactStates) — only the
+//   LIVE facts, so a range-10 player's tables never wait on ×11 / ×12.
+// Mutates st. Returns {events, gain}: events are {type:"promoted",key,from,to} and
+//   {type:"tableComplete",table,reward:"struct"|"gift",name}.
+function ttBuilderReconcile(st, facts) {
+  var events = [], gain = 0;
+  facts.forEach(function (f) {
+    var r = Math.min(f.confirmedRung || 0, TT_BUILDER_MAX_RUNG), p = st.paid[f.key] || 0;
+    if (r > p) {
+      gain += ttBuilderPearlsFor(p, r); st.paid[f.key] = r;
+      events.push({ type: "promoted", key: f.key, from: p, to: r });
+    }
+  });
+  st.pearls += gain;
+  for (var T = 2; T <= 12; T++) {
+    if (st.done[T]) continue;
+    var mine = facts.filter(function (f) { return f.a === T || f.b === T; });
+    if (!mine.length || !mine.every(function (f) { return (f.confirmedRung || 0) >= TT_BUILDER_MASTERED_RUNG; })) continue;
+    st.done[T] = 1;
+    if (TT_BUILDER_STRUCTS[T]) {
+      ttBuilderPlaceStructure(st, T);
+      events.push({ type: "tableComplete", table: T, reward: "struct", name: TT_BUILDER_STRUCTS[T].name });
+    } else if (TT_BUILDER_GIFTS[T]) {
+      st.tray.push({ id: st.nextId++, type: TT_BUILDER_GIFTS[T].id });
+      events.push({ type: "tableComplete", table: T, reward: "gift", name: TT_BUILDER_GIFTS[T].name });
+    }
+    st.edit = true;                                  // a new piece opens rearranging until the child presses Done
+  }
+  return { events: events, gain: gain };
+}
+function ttBuilderMessage(ev) {                      // child-facing line for a tableComplete event
+  return "Table " + ev.table + " complete — " + (ev.reward === "struct" ? "the " + ev.name + " is built." : "a " + ev.name.toLowerCase() + " arrives.");
+}
+// The 8 pips for a fact at confirmed rung r: tile rungs 1–5 pale, keypad-recall rungs 6–8 gold ("k").
+function ttBuilderPips(r) {
+  var out = [];
+  for (var i = 1; i <= TT_BUILDER_MAX_RUNG; i++) out.push({ on: i <= (r || 0), k: i >= TT_BUILDER_MASTERED_RUNG });
+  return out;
+}
+
+// --- shop -------------------------------------------------------------------------
+function ttBuilderRng(seed) {                        // mulberry32
+  var a = seed | 0;
+  return function () { a = (a + 0x6D2B79F5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+// Six pieces on the shelf: 2 cheap, 2 mid, 2 dear. Deterministic in the seed; buying bumps the seed.
+function ttBuilderShelf(seed) {
+  var rnd = ttBuilderRng(seed * 7919);
+  function band(lo, hi) { return TT_BUILDER_CAT.filter(function (d) { return d.price >= lo && d.price <= hi; }); }
+  function pick(a, n) { var c = a.slice(), o = []; while (o.length < n && c.length) o.push(c.splice(Math.floor(rnd() * c.length), 1)[0]); return o; }
+  return pick(band(0, 18), 2).concat(pick(band(25, 36), 2), pick(band(50, 1e9), 2));
+}
+// Buy a shelf piece: pays, adds it to the tray, reshuffles the shelf. Returns the tray id (0 = refused).
+function ttBuilderBuy(st, id) {
+  var d = ttBuilderShelf(st.shelfSeed).filter(function (x) { return x.id === id; })[0];
+  if (!d || st.pearls < d.price) return 0;
+  st.pearls -= d.price;
+  var tid = st.nextId++;
+  st.tray.push({ id: tid, type: d.id });
+  st.shelfSeed++;
+  return tid;
+}
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = { ttBuilderFresh: ttBuilderFresh, ttBuilderNormalize: ttBuilderNormalize, ttBuilderReconcile: ttBuilderReconcile, ttBuilderBuy: ttBuilderBuy, ttBuilderShelf: ttBuilderShelf };
+}
+
+// ============================================================================
+// end tt_skin_builder.js
+// ============================================================================
+// ==== MODULE tt_skin_builder.js [END] ====
+</script>
+<script>
+// ==== MODULE tt_skin_builder_play.js [BEGIN] ====
+// ============================================================================
+// tt_skin_builder_play.js — Game 5 "Reef Builder": the DOM/canvas player
+// ----------------------------------------------------------------------------
+// ONE screen (Kath h22): the reef is on screen WHILE questions are answered. The flow shows the
+// ordinary Quiz play screen (#ttPlay) in "builder mode"; this player fills the dock at its top:
+// pearls, the current fact's 8 pips, a Shop button, the reef canvas, the rearranging bar, the tray.
+// It holds no engine reference (D2): facts come through ctx.factStates(), the per-player record
+// through ctx.load()/ctx.save(). Rules are in tt_skin_builder.js. Drawing code is the prototype's
+// (Small maths games/Builder).
+//
+//   ttMakeBuilder(el) → { start(ctx), stop(), setFact(key), afterAnswer(key) }
+//     ctx = { factStates(), load(), save(obj) }
+// ============================================================================
+
+
+var TT_BUILDER_TAU = Math.PI * 2;
+
+// --- canvas helpers + item drawings (origin = base-centre for floor items, centre for swimmers) ---
+function ttBdEl(c, x, y, rx, ry, col, rot) { c.beginPath(); c.ellipse(x, y, rx, ry, rot || 0, 0, TT_BUILDER_TAU); c.fillStyle = col; c.fill(); }
+function ttBdLine(c, pts, col, w) { c.beginPath(); c.moveTo(pts[0], pts[1]); for (var i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.strokeStyle = col; c.lineWidth = w; c.lineCap = "round"; c.lineJoin = "round"; c.stroke(); }
+function ttBdPoly(c, pts, col) { c.beginPath(); c.moveTo(pts[0], pts[1]); for (var i = 2; i < pts.length; i += 2) c.lineTo(pts[i], pts[i + 1]); c.closePath(); c.fillStyle = col; c.fill(); }
+function ttBdEye(c, x, y, r) { ttBdEl(c, x, y, r, r, "#f0f8ff"); ttBdEl(c, x + r * .2, y + r * .2, r * .55, r * .55, "#1a0a2a"); }
+
+var TT_BD_DRAW = (function () {
+  var el = ttBdEl, line = ttBdLine, poly = ttBdPoly, eye = ttBdEye, TAU = TT_BUILDER_TAU;
+  var D = {
+    seagrass: function (c, t) { [-8, 0, 8].forEach(function (dx, i) { var sw = Math.sin(t * 1.6 + i * 1.3) * 5;
+      c.beginPath(); c.moveTo(dx, 0); c.quadraticCurveTo(dx + sw, -14, dx + sw * 1.6, -30 + i * 4); c.strokeStyle = ["#008855", "#00aa66", "#006644"][i]; c.lineWidth = 5; c.lineCap = "round"; c.stroke(); }); },
+    coralPink: function (c) { el(c, 0, -14, 8, 14, "#cc4488"); el(c, -8, -8, 5, 8, "#cc4488", -.3); el(c, 8, -8, 5, 8, "#cc4488", .3); },
+    coralOrange: function (c) { var g = "#dd6622"; line(c, [0, 0, 0, -26], g, 6); line(c, [0, -14, -12, -26], g, 5); line(c, [0, -10, 12, -22], g, 5);
+      [[0, -28], [-13, -28], [13, -24]].forEach(function (p) { el(c, p[0], p[1], 4, 4, "#ff9955"); }); },
+    fan: function (c, t) { var sw = Math.sin(t * 1.2) * 1.5; c.save();
+      for (var i = -4; i <= 4; i++) { var a = -Math.PI / 2 + i * .2; line(c, [0, 0, Math.cos(a) * 26 + sw, Math.sin(a) * 26], "#b04ad0", 2.5); }
+      c.beginPath(); c.arc(0, 0, 26, -Math.PI / 2 - .85, -Math.PI / 2 + .85); c.strokeStyle = "#d880f0"; c.lineWidth = 3; c.stroke(); c.restore(); line(c, [0, 0, 0, -4], "#7a2a96", 5); },
+    shell: function (c) { c.beginPath(); c.ellipse(0, -6, 14, 10, 0, Math.PI, TAU); c.closePath(); c.fillStyle = "#f2b8a0"; c.fill();
+      for (var i = -3; i <= 3; i++) line(c, [i * 3.8, -1, i * 5, -13], "#d98a70", 1.5); el(c, 0, 0, 6, 2, "#d98a70"); },
+    starfish: function (c) { c.beginPath(); for (var i = 0; i < 10; i++) { var r = i % 2 ? 5 : 15, a = -Math.PI / 2 + i * Math.PI / 5; c.lineTo(Math.cos(a) * r, -12 + Math.sin(a) * r); }
+      c.closePath(); c.fillStyle = "#ee7744"; c.fill(); c.strokeStyle = "#bb4422"; c.lineWidth = 1.5; c.stroke(); for (var j = 0; j < 5; j++) { var b = -Math.PI / 2 + j * TAU / 5; el(c, Math.cos(b) * 7, -12 + Math.sin(b) * 7, 1.5, 1.5, "#ffd0a0"); } },
+    anemone: function (c, t) { el(c, 0, -9, 7, 9, "#cc3366"); var fc = ["#ff66aa", "#ff44cc", "#ee2299", "#ff88bb", "#dd1177"];
+      for (var i = 0; i < 9; i++) { var a = (-80 + i * 20 - 90) * Math.PI / 180, l = 24 + (i % 3) * 5, sw = Math.sin(t * 2 + i) * 2;
+        var tx = Math.cos(a) * l + sw, ty = -12 + Math.sin(a) * l; c.beginPath(); c.moveTo(Math.cos(a) * 4, -12 + Math.sin(a) * 4);
+        c.quadraticCurveTo(Math.cos(a) * l * .5 + 6 * Math.cos(a + 1.57), -12 + Math.sin(a) * l * .5 + 6 * Math.sin(a + 1.57), tx, ty);
+        c.strokeStyle = fc[i % 5]; c.lineWidth = 3; c.lineCap = "round"; c.stroke(); el(c, tx, ty, 3.5, 3.5, fc[i % 5]); } },
+    crab: function (c, t) { var sh = Math.sin(t * 3) * 2; [-1, 1].forEach(function (s) { for (var i = 0; i < 3; i++) line(c, [s * 8, -8 + i * 3, s * (15 + i * 2), -4 + i * 4 + sh * .3, s * (18 + i * 2), 0], "#d4503a", 2);
+        line(c, [s * 10, -12, s * 18, -20], "#d4503a", 3); el(c, s * 20, -23, 5, 4, "#e8604a"); });
+      el(c, 0, -10, 13, 9, "#e8604a"); eye(c, -4, -20, 3); eye(c, 4, -20, 3); line(c, [-4, -9, 4, -9], "#7a1a10", 1.5); },
+    chest: function (c, t) { c.fillStyle = "#8a5a2a"; c.fillRect(-17, -16, 34, 16); c.beginPath(); c.ellipse(0, -16, 17, 9, 0, Math.PI, TAU); c.fill();
+      c.fillStyle = "#e8b830"; c.fillRect(-3, -18, 6, 18); c.fillRect(-17, -8, 34, 3); el(c, 0, -9, 3, 3, "#a07810");
+      var g = (Math.sin(t * 3) + 1) / 2; c.globalAlpha = .4 + g * .5; el(c, 10, -22, 2.5, 2.5, "#fff"); c.globalAlpha = 1; },
+    lantern: function (c, t) { line(c, [0, 0, 0, -24], "#2a6a5a", 3); var p = .75 + Math.sin(t * 2) * .25;
+      var gr = c.createRadialGradient(0, -30, 1, 0, -30, 22 * p); gr.addColorStop(0, "rgba(255,240,140,.95)"); gr.addColorStop(.4, "rgba(255,220,90,.5)"); gr.addColorStop(1, "rgba(255,220,90,0)");
+      c.fillStyle = gr; c.beginPath(); c.arc(0, -30, 22 * p, 0, TAU); c.fill(); el(c, 0, -30, 6, 6, "#fff6b0"); },
+    fish: function (c, t, o) { var col = (o && o.col) || "#4aa8e8"; c.beginPath(); c.ellipse(4, 0, 13, 8, 0, 0, TAU); c.fillStyle = col; c.fill();
+      var w = Math.sin(t * 8) * 2; poly(c, [-8, 0, -18, -8 + w, -18, 8 + w], (o && o.fin) || "#2a78b8"); eye(c, 10, -2, 2.8); },
+    clown: function (c, t) { c.beginPath(); c.ellipse(4, 0, 14, 9, 0, 0, TAU); c.fillStyle = "#ff8a2a"; c.fill();
+      c.save(); c.clip(); c.fillStyle = "#fff"; c.fillRect(0, -12, 4, 24); c.fillRect(11, -12, 3, 24); c.restore();
+      c.beginPath(); c.ellipse(4, 0, 14, 9, 0, 0, TAU); c.strokeStyle = "#222"; c.lineWidth = 1.2; c.stroke();
+      var w = Math.sin(t * 8) * 2; poly(c, [-9, 0, -19, -8 + w, -19, 8 + w], "#ff8a2a"); eye(c, 11, -2, 2.6); },
+    puffer: function (c, t) { for (var i = 0; i < 12; i++) { var a = i * TAU / 12; line(c, [Math.cos(a) * 11, Math.sin(a) * 11, Math.cos(a) * 16, Math.sin(a) * 16], "#d8b430", 2); }
+      el(c, 0, 0, 12, 11, "#f2d050"); el(c, 0, 5, 8, 5, "#fff2b0"); var w = Math.sin(t * 6) * 2; poly(c, [-11, 0, -19, -5 + w, -19, 5 + w], "#d8b430"); eye(c, 6, -3, 3); el(c, 11, 2, 2.5, 1.5, "#c05030"); },
+    seahorse: function (c, t) { var s = Math.sin(t * 2) * 1.5; c.strokeStyle = "#f0a030"; c.lineCap = "round"; c.lineWidth = 9;
+      c.beginPath(); c.moveTo(2, -24); c.bezierCurveTo(10, -12, -6, -4, 2, 8); c.bezierCurveTo(6, 16, -6, 22 + s, -6, 14); c.stroke();
+      el(c, 2, -28, 7, 6, "#f0a030"); poly(c, [7, -29, 17, -27, 17, -24, 8, -25], "#f0a030"); eye(c, 3, -29, 2.2); el(c, -5, -14, 4, 6, "#e07820", .3); },
+    jelly: function (c, t) { var p = Math.sin(t * 2.4) * 2; c.beginPath(); c.ellipse(0, -4, 17, 13 + p * .4, 0, Math.PI, TAU); c.closePath(); c.fillStyle = "rgba(190,140,255,.85)"; c.fill();
+      for (var i = -3; i <= 3; i++) { c.beginPath(); c.moveTo(i * 5, -4); c.quadraticCurveTo(i * 5 + Math.sin(t * 3 + i) * 4, 8, i * 5 + Math.sin(t * 3 + i + 1) * 3, 18 + p); c.strokeStyle = "rgba(215,180,255,.9)"; c.lineWidth = 2; c.lineCap = "round"; c.stroke(); }
+      eye(c, -5, -8, 2); eye(c, 5, -8, 2); },
+    turtle: function (c, t) { var f = Math.sin(t * 2) * .3; el(c, -14, 6, 9, 4, "#5aa86a", .6 + f); el(c, 10, 6, 9, 4, "#5aa86a", -.6 - f); el(c, 0, 0, 22, 14, "#3a8a4a");
+      c.strokeStyle = "#2a6a38"; c.lineWidth = 1.5; [[-8, 0], [8, 0], [0, -8], [0, 8]].forEach(function (p) { c.beginPath(); c.arc(p[0], p[1], 6, 0, TAU); c.stroke(); });
+      el(c, 25, -2, 8, 6, "#5aa86a"); eye(c, 28, -4, 2.2); poly(c, [-20, 0, -28, 3, -20, 4], "#5aa86a"); },
+    ship: function (c, t) { c.save(); c.rotate(-.12); poly(c, [-34, -14, 34, -14, 24, 2, -24, 2], "#6a4424"); line(c, [-34, -14, 34, -14], "#8a5a2a", 3);
+      line(c, [0, -14, 0, -52], "#4a2e14", 3); poly(c, [0, -48, 0, -22, -18, -26], "#d8cdb0");
+      [-18, -6, 6, 18].forEach(function (x) { el(c, x, -8, 2.5, 2.5, "#1a1008"); });
+      var b = Math.sin(t * 1.5) * 2; c.restore(); c.globalAlpha = .7; el(c, 22, -40 - b, 3, 3, "#aee"); c.globalAlpha = 1; },
+    clam: function (c, t) { var o = .35 + (Math.sin(t * 1.2) + 1) * .18; c.beginPath(); c.ellipse(0, -4, 18, 10, 0, 0, Math.PI); c.fillStyle = "#c96a8a"; c.fill();
+      var pg = c.createRadialGradient(0, -8, 1, 0, -8, 14); pg.addColorStop(0, "rgba(255,255,255,.95)"); pg.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = pg; c.beginPath(); c.arc(0, -8, 14, 0, TAU); c.fill();
+      el(c, 0, -7, 5, 5, "#f4efe6"); c.save(); c.translate(-18, -4); c.rotate(-o); c.beginPath(); c.ellipse(18, 0, 18, 10, 0, Math.PI, TAU); c.fillStyle = "#e07a9a"; c.fill(); c.restore(); },
+    // h22: the two gifts for the 11s and 12s (not in the prototype)
+    manta: function (c, t) { var f = Math.sin(t * 2.2) * 4;     // seen from above: wide wings, flapping
+      c.beginPath(); c.moveTo(18, 0); c.bezierCurveTo(10, -10, 2, -22, -8, -27 + f); c.bezierCurveTo(-5, -15, -9, -6, -14, 0);
+      c.bezierCurveTo(-9, 6, -5, 15, -8, 27 - f); c.bezierCurveTo(2, 22, 10, 10, 18, 0); c.closePath();
+      c.fillStyle = "#4a5a90"; c.fill(); c.strokeStyle = "#2c3868"; c.lineWidth = 1.5; c.stroke();
+      ttBdEl(c, 2, 0, 11, 6.5, "#7a8cc8"); ttBdEl(c, 18, -3, 3, 1.8, "#4a5a90"); ttBdEl(c, 18, 3, 3, 1.8, "#4a5a90");
+      ttBdLine(c, [-14, 0, -26, Math.sin(t * 2.2) * 3, -36, Math.sin(t * 2.2 + 1) * 4], "#2c3868", 2);
+      ttBdEl(c, 8, 0, 3.5, 2, "#e8f0ff"); eye(c, 12, -4, 1.8); eye(c, 12, 4, 1.8); },
+    whale: function (c, t) { var w = Math.sin(t * 1.6) * 3;
+      c.beginPath(); c.ellipse(0, 0, 36, 17, 0, 0, TAU); c.fillStyle = "#5a7aa8"; c.fill();
+      c.beginPath(); c.ellipse(4, 6, 30, 9, 0, 0, Math.PI); c.fillStyle = "#cfe0f2"; c.fill();
+      poly(c, [-30, 0, -46, -14 + w, -40, -2, -46, 12 + w], "#4a6a98"); poly(c, [-2, 12, 8, 24, 14, 12], "#4a6a98");
+      eye(c, 22, -4, 2.6); c.beginPath(); c.arc(24, 5, 6, .2, 1.2); c.strokeStyle = "#2a3a58"; c.lineWidth = 1.2; c.stroke(); },
+  };
+  return D;
+})();
+
+// motion for swimmers / crabs: range px, speed, noflip (never mirror), bob (vertical wander)
+var TT_BD_MOTION = {
+  fish: { range: 46, speed: .45 }, clown: { range: 38, speed: .6 }, crab: { range: 10, speed: .8, noflip: 1 }, puffer: { range: 30, speed: .35 },
+  seahorse: { range: 14, speed: .3, noflip: 1, bob: 8 }, jelly: { range: 20, speed: .25, noflip: 1, bob: 12 }, turtle: { range: 70, speed: .18 },
+  manta: { range: 80, speed: .15, bob: 10 }, whale: { range: 90, speed: .1, bob: 6 },
+};
+
+// --- structures (tables 2–5): absolute scene coordinates, drawn shifted to wherever the child puts them ---
+var TT_BD_RK = { a: "#56649a", b: "#3d4a78", c: "#262f52" };
+function ttBdRockFill(c, y0, y1) { var g = c.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, TT_BD_RK.a); g.addColorStop(.35, TT_BD_RK.b); g.addColorStop(1, TT_BD_RK.c); return g; }
+function ttBdBump(c, x, y, col) { ttBdEl(c, x, y - 4, 5, 7, col); ttBdEl(c, x - 5, y - 1, 3, 5, col, -.3); ttBdEl(c, x + 5, y - 1, 3, 5, col, .3); }
+var TT_BD_STRUCT = (function () {
+  var H = TT_BUILDER_H, FT = TT_BUILDER_FT, el = ttBdEl, line = ttBdLine, bump = ttBdBump, RK = TT_BD_RK, TAU = TT_BUILDER_TAU;
+  return {
+    2: { y0: 238, y1: H,
+      path: function (c) { c.beginPath(); c.moveTo(4, H); c.bezierCurveTo(8, 300, 40, 244, 84, 240); c.bezierCurveTo(128, 244, 162, 300, 166, H); c.closePath(); },
+      decor: function (c, t) {
+        c.beginPath(); c.moveTo(34, H); c.bezierCurveTo(34, 300, 54, 274, 84, 274); c.bezierCurveTo(114, 274, 134, 300, 134, H); c.closePath();
+        var g = c.createLinearGradient(0, 274, 0, H); g.addColorStop(0, "#0b1020"); g.addColorStop(1, "#1a2240"); c.fillStyle = g; c.fill();
+        c.strokeStyle = "#1a2040"; c.lineWidth = 2; c.stroke();
+        el(c, 18, H - 4, 16, 10, "#46538a"); el(c, 152, H - 6, 18, 11, "#46538a");
+        el(c, 70, 246, 14, 5, "#2f8a5a", -.2); el(c, 104, 252, 10, 4, "#2f8a5a", .3);
+        line(c, [30, 300, 44, 284, 52, 270], RK.c, 1.5); line(c, [140, 296, 126, 282, 118, 268], RK.c, 1.5); } },
+    3: { y0: 130, y1: H,
+      path: function (c) { c.beginPath(); c.moveTo(480, 132); c.bezierCurveTo(430, 130, 360, 140, 326, 158); c.bezierCurveTo(318, 164, 322, 174, 334, 176);
+        c.bezierCurveTo(380, 182, 412, 184, 424, 200); c.lineTo(430, H); c.lineTo(480, H); c.closePath(); },
+      decor: function (c, t) {
+        c.save(); c.globalAlpha = .3; el(c, 380, 226, 56, 10, "#000"); c.restore();
+        [[346, 178], [368, 182], [392, 185], [410, 188]].forEach(function (p, i) { var sw = Math.sin(t * 1.6 + i) * 3; c.beginPath(); c.moveTo(p[0], p[1]);
+          c.quadraticCurveTo(p[0] + sw, p[1] + 10, p[0] + sw * 1.5, p[1] + 20 + i * 2); c.strokeStyle = ["#008855", "#00aa66"][i % 2]; c.lineWidth = 3; c.lineCap = "round"; c.stroke(); });
+        bump(c, 350, 150, "#cc4488"); bump(c, 392, 142, "#dd6622"); bump(c, 440, 134, "#cc4488");
+        line(c, [440, 204, 436, 250, 440, 310], RK.c, 1.5); } },
+    4: { y0: 128, y1: FT + 2,
+      path: function (c) { var b = FT + 2; c.beginPath(); c.moveTo(238, b); c.lineTo(238, 172); c.bezierCurveTo(238, 120, 346, 120, 346, 172); c.lineTo(346, b); c.lineTo(318, b);
+        c.lineTo(318, 174); c.bezierCurveTo(318, 154, 266, 154, 266, 174); c.lineTo(266, b); c.closePath(); },
+      decor: function (c, t) { bump(c, 270, 140, "#ff9955"); bump(c, 292, 134, "#ff66aa"); bump(c, 316, 140, "#ff9955");
+        line(c, [248, 180, 252, 196, 248, 212], RK.c, 1.5); line(c, [336, 180, 332, 196, 336, 212], RK.c, 1.5); } },
+    5: { y0: 90, y1: FT + 4,
+      path: function (c) { var b = FT + 4; c.beginPath(); c.moveTo(164, b); c.lineTo(176, 150); c.bezierCurveTo(176, 128, 186, 106, 190, 98); c.bezierCurveTo(194, 106, 204, 128, 206, 150); c.lineTo(218, b); c.closePath(); },
+      decor: function (c, t) { var p = .8 + Math.sin(t * 2) * .2, gr = c.createRadialGradient(190, 92, 1, 190, 92, 26 * p);
+        gr.addColorStop(0, "rgba(255,245,170,.95)"); gr.addColorStop(1, "rgba(255,245,170,0)");
+        c.fillStyle = gr; c.beginPath(); c.arc(190, 92, 26 * p, 0, TAU); c.fill(); el(c, 190, 94, 5, 5, "#fff6b0");
+        line(c, [184, 150, 188, 170, 184, 190], RK.c, 1.5); line(c, [198, 140, 196, 164, 200, 188], RK.c, 1.5); } },
+  };
+})();
+// [left, right, top, bottom] relative to the anchor — only to keep a dragged structure on screen
+var TT_BD_BB = { 2: [-80, 82, -120, 0], 3: [-118, 40, -230, 0], 4: [-54, 54, -98, 0], 5: [-26, 28, -125, 0] };
+
+// ============================================================================
+// the REEF BUILDER — ONE screen (Kath h22): the reef sits ABOVE the ordinary Quiz play elements
+// (question, input, scaffold, help), all on screen at once. The flow shows #ttPlay in "builder
+// mode" and this player fills the dock at its top. The drill underneath is unchanged.
+// ============================================================================
+function ttMakeBuilder(el) {
+  var W = TT_BUILDER_W, H = TT_BUILDER_H, FT = TT_BUILDER_FT, TAU = TT_BUILDER_TAU;
+  var ctx = null, S = null, raf = 0, running = false;
+  var cv = null, g = null, pearlsEl = null, pcEl = null, pipsEl = null, trayEl = null, editEl = null, noteEl = null, shopBtn = null;
+  var shopOv = null, shelfEl = null;
+  var placing = null, drag = null, pointer = null, riseT = {}, octoUntil = 0, msgs = [], msgAge = 0;
+  var factKey = null, popRung = 0;
+  var bubbles = [], bubAcc = 0, bubLast = 0;
+  var BUB_TICK = 0.08, BUB_SPAWN = 0.18 * H / 460 * 2 / 3;   // prototype recipe: 2/3 of the bonds-game density
+
+  function div(cls, text) { var d = document.createElement("div"); d.className = cls; if (text != null) d.textContent = text; return d; }
+  function btn(cls, text, fn) { var b = document.createElement("button"); b.type = "button"; b.className = cls; b.textContent = text; b.addEventListener("click", fn); return b; }
+  function save() { ctx.save(S); }
+  function def(type) { return TT_BUILDER_DEFS[type]; }
+  function kindOf(it) { return def(it.type).kind; }
+
+  // --- background, den, octopus ----------------------------------------------
+  function bubTick() {
+    if (Math.random() < BUB_SPAWN) bubbles.push({ x: 15 + Math.random() * (W - 30), y: H - 10, r: 4 + Math.random() * 6, v: .6 + Math.random() * 1.2 });
+    bubbles = bubbles.filter(function (b) { b.x += (Math.random() - .5) * .8; b.y -= b.v; return b.y + b.r > 0; });
+  }
+  function stepBubbles(t) {
+    if (!bubLast) bubLast = t; bubAcc += Math.min(t - bubLast, .25); bubLast = t;
+    while (bubAcc >= BUB_TICK) { bubTick(); bubAcc -= BUB_TICK; }
+  }
+  function drawBubbles() {
+    g.strokeStyle = "#4ab8e0"; g.lineWidth = 1;
+    bubbles.forEach(function (b) {
+      g.beginPath(); g.arc(b.x, b.y, b.r, 0, TAU); g.stroke();
+      g.fillStyle = "#a0e0ff"; g.beginPath(); g.ellipse(b.x - b.r / 3, b.y - b.r * .5, b.r / 3, b.r / 4, 0, 0, TAU); g.fill();
+    });
+  }
+  function drawBack(t) {
+    ["#0e2a5a", "#0a1e48", "#081638"].forEach(function (col, i) { g.fillStyle = col; g.fillRect(0, i * H / 3, W, H / 3); });
+    g.fillStyle = "#1a3a6a"; [60, 160, 300, 400, 450].forEach(function (rx) { g.beginPath(); g.moveTo(rx - 18, 0); g.lineTo(rx + 18, 0); g.lineTo(rx + 6, H * .4); g.lineTo(rx - 6, H * .4); g.closePath(); g.fill(); });
+    g.globalAlpha = .07; g.fillStyle = "#bfe6ff"; [90, 230, 370].forEach(function (rx, i) { var sw = Math.sin(t * .3 + i) * 14; g.beginPath(); g.moveTo(rx + sw, 0); g.lineTo(rx + 40 + sw, 0); g.lineTo(rx - 30, FT); g.lineTo(rx - 70, FT); g.closePath(); g.fill(); }); g.globalAlpha = 1;
+    var gr = g.createLinearGradient(0, FT - 14, 0, H); gr.addColorStop(0, "#5a5a78"); gr.addColorStop(1, "#3c3c58"); g.fillStyle = gr;
+    g.beginPath(); g.moveTo(0, FT); for (var x = 0; x <= W; x += 40) g.quadraticCurveTo(x + 20, FT - 8 + ((x / 40) % 2 ? 6 : -2), x + 40, FT); g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fill();
+    stepBubbles(t); drawBubbles();
+  }
+  function octoPos() { var c = S.placed.filter(function (i) { return i.type === "st2"; })[0]; return c ? { x: c.x, y: c.y - 60 } : { x: 84, y: H - 34 - 26 }; }
+  function drawOcto(t) {
+    var now = performance.now(), exc = now < octoUntil, op = octoPos(), cx = op.x, cy = op.y + Math.sin(t * 1.5) * 2, rot = 0;
+    if (exc) { var ph = (octoUntil - now) / 1500 * Math.PI * 3; cy -= Math.abs(Math.sin(ph)) * 16; rot = Math.sin(ph) * 10; }
+    var blink = (t % 4.3) < .14, bx = 26, by = 38, BODY = "#cc5588", DARK = "#993366", SUCK = "#ffaad4";
+    g.save(); g.translate(cx, cy); g.scale(.62, .62); g.translate(-cx, -cy);
+    var armCy = cy + by * .6;
+    [30, 50, 70, 90].forEach(function (deg) { [-1, 1].forEach(function (side) {
+      var ang = Math.PI / 2 + (deg * side + (exc ? -10 : 0) * side + rot * side) * Math.PI / 180, len = 70, push = 18;
+      var sx = cx + push * Math.cos(ang), sy = armCy + push * Math.sin(ang), perp = ang + Math.PI / 2 * side;
+      var p1x = sx + (len - push) * .45 * Math.cos(ang) + 13 * Math.cos(perp), p1y = sy + (len - push) * .45 * Math.sin(ang) + 13 * Math.sin(perp);
+      var p2x = cx + len * Math.cos(ang) - 7 * Math.cos(perp), p2y = armCy + len * Math.sin(ang) - 7 * Math.sin(perp);
+      g.strokeStyle = BODY; g.lineCap = "round"; g.beginPath(); g.moveTo(sx, sy); g.quadraticCurveTo(p1x, p1y, p2x, p2y); g.lineWidth = 7; g.stroke();
+      [.35, .72].forEach(function (u) { var qx = sx * (1 - u) * (1 - u) + 2 * p1x * u * (1 - u) + p2x * u * u, qy = sy * (1 - u) * (1 - u) + 2 * p1y * u * (1 - u) + p2y * u * u;
+        g.beginPath(); g.arc(qx, qy, u < .5 ? 4 : 3, 0, TAU); g.fillStyle = SUCK; g.fill(); g.strokeStyle = DARK; g.lineWidth = 1; g.stroke(); });
+    }); });
+    g.beginPath(); g.ellipse(cx, cy, bx, by, 0, 0, TAU); g.fillStyle = BODY; g.fill(); g.strokeStyle = DARK; g.lineWidth = 2; g.stroke();
+    var eyeY = cy - 14, mY = cy + 6;
+    [cx - 9, cx + 9].forEach(function (ex) {
+      if (blink) { ttBdLine(g, [ex - 5, eyeY + 1, ex + 5, eyeY + 1], "#1a0a2a", 2); }
+      else { g.beginPath(); g.ellipse(ex, eyeY, 6, 6, 0, 0, TAU); g.fillStyle = "#f0f8ff"; g.fill(); g.strokeStyle = "#1a0a2a"; g.lineWidth = 1; g.stroke();
+        ttBdEl(g, ex, eyeY + 2, 3.5, 3.5, "#1a0a2a"); ttBdEl(g, ex - 1.5, eyeY + .5, 1.2, 1.2, "#fff"); }
+    });
+    g.beginPath(); g.arc(cx, mY + 4, 10, .25, Math.PI - .25); g.strokeStyle = "#1a0a2a"; g.lineWidth = 2.5; g.stroke();
+    g.globalAlpha = .6; [cx - 17, cx + 17].forEach(function (x) { ttBdEl(g, x, mY, 5, 4, "#ff88bb"); }); g.globalAlpha = 1;
+    g.restore();
+  }
+
+  // --- placed items -------------------------------------------------------------
+  function drawOf(type) { return TT_BD_DRAW[type]; }
+  function scaleAt(it) { return kindOf(it) === "floor" ? .78 + .5 * Math.max(0, Math.min(1, (it.y - FT) / (H - FT))) : 1; }
+  function posOf(it, t) {
+    var m = TT_BD_MOTION[it.type];
+    if (!m) return { x: it.x, y: it.y, dir: 1 };
+    var ph = it.id * 1.7, a = t * m.speed + ph, ox = Math.sin(a) * m.range;
+    return { x: it.x + ox, y: it.y + (m.bob ? Math.sin(t * .9 + ph) * m.bob : (kindOf(it) === "swim" ? Math.sin(t * 1.3 + ph) * 4 : 0)), dir: m.noflip ? 1 : (Math.cos(a) >= 0 ? 1 : -1) };
+  }
+  function drawStruct(it, t) {
+    var T = def(it.type).table, s = TT_BD_STRUCT[T], an = TT_BUILDER_STRUCTS[T].anchor;
+    var k = riseT[T] ? 1 - Math.pow(1 - Math.min(1, (performance.now() - riseT[T]) / 1000), 3) : 1;
+    g.save(); g.translate(it.x, it.y); g.scale(1, k); g.translate(-an[0], -an[1]);
+    s.path(g); g.fillStyle = ttBdRockFill(g, s.y0, s.y1); g.fill(); g.strokeStyle = "#1c2442"; g.lineWidth = 2; g.stroke();
+    s.decor(g, t); g.restore();
+  }
+  function drawItem(it, t, ghost) {
+    if (kindOf(it) === "big") { drawStruct(it, t); return; }
+    var p = ghost ? { x: it.x, y: it.y, dir: 1 } : posOf(it, t), s = scaleAt(it);
+    g.save(); g.translate(p.x, p.y); g.scale(s * p.dir, s); if (ghost) g.globalAlpha = .55;
+    drawOf(it.type)(g, t, {}); g.restore();
+  }
+
+  // --- interaction ----------------------------------------------------------------
+  function cpos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
+  function structPath(it) { var T = def(it.type).table, an = TT_BUILDER_STRUCTS[T].anchor; g.translate(it.x - an[0], it.y - an[1]); TT_BD_STRUCT[T].path(g); }
+  function clampFor(it, p) {
+    var k = kindOf(it);
+    if (k === "big") { var b = TT_BD_BB[def(it.type).table]; return { x: Math.max(-b[0], Math.min(W - b[1], p.x)), y: Math.max(Math.max(FT - 8, -b[2]), Math.min(H, p.y)) }; }
+    return { x: Math.max(14, Math.min(W - 14, p.x)), y: k === "floor" ? Math.max(FT + 4, Math.min(H - 4, p.y)) : Math.max(24, Math.min(FT + 50, p.y)) };
+  }
+  function hit(p, t, only) {
+    var arr = S.placed.filter(function (i) { return !only || i.id === only; }).sort(function (a, b) { return b.y - a.y; }), i, it;
+    for (i = 0; i < arr.length; i++) { it = arr[i]; if (kindOf(it) === "big") continue;
+      var q = posOf(it, t), s = scaleAt(it), fl = kindOf(it) === "floor", cy = fl ? q.y - 16 * s : q.y, r = (fl ? 26 : 22) * s;
+      if (Math.hypot(p.x - q.x, p.y - cy) < r) return it; }
+    for (i = 0; i < arr.length; i++) { it = arr[i]; if (kindOf(it) !== "big") continue;
+      g.save(); g.setTransform(2, 0, 0, 2, 0, 0); structPath(it); var r2 = g.isPointInPath(p.x * 2, p.y * 2); g.restore(); if (r2) return it; }
+    return null;
+  }
+  // Floor pieces can stand on the ground or on top of a structure: surfaceY = topmost solid point of a
+  // structure at column x; a dropped piece snaps to the nearest surface in a band round the pointer.
+  function surfaceY(b, x) {
+    var bb = TT_BD_BB[def(b.type).table];
+    g.save(); g.setTransform(2, 0, 0, 2, 0, 0); structPath(b);
+    var r = null; for (var y = b.y + bb[2] - 2; y <= b.y + bb[3]; y += 2) { if (g.isPointInPath(x * 2, y * 2)) { r = y; break; } }
+    g.restore(); return r;
+  }
+  function supportFor(x, py) {
+    var best = null;
+    S.placed.forEach(function (b) { if (kindOf(b) !== "big") return; var sy = surfaceY(b, x);
+      if (sy === null || py < sy - 70 || py > sy + 24) return;
+      if (!best || Math.abs(py - sy) < Math.abs(py - best.y)) best = { y: sy, on: b.id }; });
+    return best;
+  }
+  function placeAt(it, p) {
+    var x = Math.max(14, Math.min(W - 14, p.x));
+    if (kindOf(it) === "floor") { var s = supportFor(x, p.y); if (s) return { x: x, y: s.y, on: s.on }; return { x: x, y: Math.max(FT + 4, Math.min(H - 4, p.y)), on: null }; }
+    return { x: x, y: Math.max(24, Math.min(FT + 50, p.y)), on: null };
+  }
+  function onDown(e) {
+    e.preventDefault(); var p = cpos(e); pointer = p;
+    if (placing) {
+      var tr = S.tray.filter(function (x) { return x.id === placing; })[0]; if (!tr) return;
+      var c = placeAt(tr, p); S.placed.push({ id: tr.id, type: tr.type, x: c.x, y: c.y, on: c.on }); S.lastPlaced = tr.id;
+      S.tray = S.tray.filter(function (x) { return x.id !== placing; }); placing = null; renderTray(); save(); return;
+    }
+    var locked = !S.edit;                    // while locked, only the most recently placed piece can be nudged
+    if (locked && !S.lastPlaced) return;
+    var it = hit(p, performance.now() / 1000, locked ? S.lastPlaced : null);
+    if (it) { drag = it; try { cv.setPointerCapture(e.pointerId); } catch (_) {} drag._dx = it.x - p.x; drag._dy = it.y - p.y; }
+  }
+  function onMove(e) {
+    var p = cpos(e); pointer = p;
+    if (!drag) return;
+    var q = { x: p.x + drag._dx, y: p.y + drag._dy };
+    if (kindOf(drag) === "big") {
+      var c = clampFor(drag, q), dx = c.x - drag.x, dy = c.y - drag.y;
+      S.placed.forEach(function (i) { if (i.on === drag.id) { i.x += dx; i.y += dy; } }); drag.x = c.x; drag.y = c.y;
+    } else { var c2 = placeAt(drag, q); drag.x = c2.x; drag.y = c2.y; drag.on = c2.on; }
+  }
+  function endDrag() { if (drag) { delete drag._dx; delete drag._dy; drag = null; save(); } }
+
+  // --- render loop -----------------------------------------------------------------
+  function frame(ms) {
+    if (!running) return;
+    var t = ms / 1000; g.setTransform(2, 0, 0, 2, 0, 0);
+    drawBack(t);
+    var byY = function (a, b) { return a.y - b.y; }, isBig = function (i) { return kindOf(i) === "big"; };
+    S.placed.filter(isBig).sort(byY).forEach(function (it) { drawItem(it, t); });
+    drawOcto(t);
+    S.placed.filter(function (i) { return !isBig(i); }).sort(byY).forEach(function (it) { drawItem(it, t); });
+    if (placing && pointer) { var tr = S.tray.filter(function (x) { return x.id === placing; })[0]; if (tr) { var c = placeAt(tr, pointer); drawItem({ id: tr.id, type: tr.type, x: c.x, y: c.y }, t, true); } }
+    raf = requestAnimationFrame(frame);
+  }
+
+  // --- icons, tray, shop -------------------------------------------------------------
+  function icon(type) {
+    var d = def(type), c = document.createElement("canvas"); c.width = c.height = 112;
+    var x = c.getContext("2d"); x.scale(2, 2);
+    x.translate(28, d.kind === "floor" ? 46 : 28); x.scale(.95, .95);
+    try { TT_BD_DRAW[type](x, 1.3, {}); } catch (e) {}
+    return c;
+  }
+  function renderEdit() { editEl.classList.toggle("on", !!S.edit); cv.style.cursor = S.edit ? "grab" : "default"; }
+  function renderTray() {
+    trayEl.innerHTML = ""; trayEl.classList.toggle("on", S.tray.length > 0);
+    if (!S.tray.length) return;
+    var s = document.createElement("small"); s.textContent = placing ? "Tap the reef to place it" : "Tap a piece, then the reef"; trayEl.appendChild(s);
+    S.tray.forEach(function (tr) {
+      var b = div("tt-bd-chip" + (placing === tr.id ? " sel" : "")); b.appendChild(icon(tr.type)); b.title = def(tr.type).name;
+      b.addEventListener("click", function () { placing = placing === tr.id ? null : tr.id; renderTray(); }); trayEl.appendChild(b);
+    });
+  }
+  function renderShop() {
+    shelfEl.innerHTML = "";
+    ttBuilderShelf(S.shelfSeed).forEach(function (d) {
+      var b = div("tt-bd-item" + (S.pearls < d.price ? " no" : "")); b.appendChild(icon(d.id));
+      b.appendChild(div("", d.name));
+      var pr = div("tt-bd-pr"); pr.innerHTML = "<span class='tt-bd-pearl'></span>" + d.price; b.appendChild(pr);
+      b.addEventListener("click", function () {
+        var id = ttBuilderBuy(S, d.id); if (!id) return;
+        placing = id; save(); renderPearls(false); renderTray(); showShop(false);
+      });
+      shelfEl.appendChild(b);
+    });
+  }
+  function renderPearls(bump) {
+    pcEl.textContent = S.pearls;
+    if (bump) { pearlsEl.classList.add("bump"); setTimeout(function () { pearlsEl.classList.remove("bump"); }, 250); }
+    if (shopOv && shopOv.style.display !== "none") renderShop();
+  }
+  function showShop(on) { if (!shopOv) return; if (on) renderShop(); shopOv.style.display = on ? "" : "none"; shopBtn.classList.toggle("sel", on); }
+  function renderMsgs() { noteEl.innerHTML = ""; msgs.forEach(function (m) { noteEl.appendChild(div("", m)); }); }
+  // The current fact's 8 pips: lit = the engine's CONFIRMED rung (tile rungs pale, keypad R6–R8 gold).
+  function rungOf(key) {
+    var fs = ctx.factStates();
+    for (var i = 0; i < fs.length; i++) if (fs[i].key === key) return fs[i].confirmedRung || 0;
+    return 0;
+  }
+  function renderPips() {
+    var h = ""; ttBuilderPips(factKey ? rungOf(factKey) : 0).forEach(function (p, i) { h += "<i class='" + (p.on ? "on " : "") + (p.k ? "k " : "") + (i + 1 === popRung ? "pop" : "") + "'></i>"; });
+    pipsEl.innerHTML = h; popRung = 0;
+  }
+
+  // --- build ---------------------------------------------------------------------------
+  function build() {
+    el.innerHTML = "";
+    var head = div("tt-bd-head");
+    pearlsEl = div("tt-bd-pearls"); pearlsEl.innerHTML = "<span class='tt-bd-pearl'></span><span class='tt-bd-pc'>0</span>"; pcEl = pearlsEl.lastChild;
+    pipsEl = div("tt-bd-pips");
+    shopBtn = btn("tt-bd-shopbtn", "Shop", function () { showShop(shopOv.style.display === "none"); });
+    head.appendChild(pearlsEl); head.appendChild(pipsEl); head.appendChild(shopBtn); el.appendChild(head);
+    var scene = div("tt-bd-scene"); cv = document.createElement("canvas"); cv.className = "tt-bd-cv"; cv.width = W * 2; cv.height = H * 2; scene.appendChild(cv); el.appendChild(scene);
+    g = cv.getContext("2d");
+    editEl = div("tt-bd-edit"); editEl.appendChild(div("", "Rearranging is open: drag pieces, then Done."));
+    editEl.appendChild(btn("tt-bd-done", "Done", function () { S.edit = false; drag = null; msgs = []; save(); renderEdit(); renderMsgs(); }));
+    el.appendChild(editEl);
+    noteEl = div("tt-bd-note"); el.appendChild(noteEl);
+    trayEl = div("tt-bd-tray"); el.appendChild(trayEl);
+    cv.addEventListener("pointerdown", onDown); cv.addEventListener("pointermove", onMove);
+    cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
+    cv.addEventListener("pointerleave", function () { if (!drag) pointer = null; });
+    // shop = a card over the screen (the reef keeps the room); built once, shown on demand
+    if (shopOv && shopOv.parentNode) shopOv.parentNode.removeChild(shopOv);
+    shopOv = div("tt-overlay tt-bd-shop"); shopOv.style.display = "none";
+    var card = div("tt-gate-card tt-bd-shopcard"); shelfEl = div("tt-bd-shelf"); card.appendChild(shelfEl);
+    card.appendChild(div("tt-bd-shopnote", "Pearls come from moving a fact up a step, not from every answer. Prices never change. Master a whole table for something big: ×2 cave · ×3 overhang · ×4 arch · ×5 lantern rock · ×6 and up a creature."));
+    card.appendChild(btn("tt-subtle", "Close", function () { showShop(false); }));
+    shopOv.appendChild(card); shopOv.addEventListener("click", function (e) { if (e.target === shopOv) showShop(false); });
+    (el.closest("#app") || document.body).appendChild(shopOv);
+  }
+
+  // Called by the flow when #ttPlay is shown in builder mode.
+  function start(c) {
+    ctx = c; stop(); build();
+    el.style.display = ""; el.parentNode.classList.add("tt-bd-on");
+    S = ttBuilderNormalize(ctx.load());
+    var res = ttBuilderReconcile(S, ctx.factStates());       // catch up on everything the engine has recorded
+    msgs = []; msgAge = 0; factKey = null; popRung = 0;
+    res.events.forEach(function (e) {
+      if (e.type !== "tableComplete") return;
+      msgs.push(ttBuilderMessage(e));
+      if (e.reward === "struct") riseT[e.table] = performance.now();
+    });
+    if (res.gain || msgs.length) octoUntil = performance.now() + 1500;
+    Object.keys(TT_BUILDER_STRUCTS).forEach(function (t) { if (S.done[t]) ttBuilderPlaceStructure(S, +t); });   // heal a lost structure
+    save();
+    placing = null; drag = null; pointer = null; bubbles = []; bubAcc = 0; bubLast = 0;
+    for (var i = 0; i < 260; i++) bubTick();                  // warm-up so the reef starts populated
+    renderPearls(res.gain > 0); renderTray(); renderEdit(); renderMsgs(); renderPips();
+    running = true; raf = requestAnimationFrame(frame);
+  }
+  function stop() {
+    running = false; if (raf) cancelAnimationFrame(raf); raf = 0; drag = null; placing = null;
+    if (shopOv) shopOv.style.display = "none";
+    el.style.display = "none"; if (el.parentNode) el.parentNode.classList.remove("tt-bd-on");
+  }
+  // The flow calls these around the drill: a question is up / an answer has just been recorded.
+  function setFact(key) {
+    if (!ctx || !S) return;
+    factKey = key; popRung = 0; renderPips();
+    if (msgs.length && ++msgAge >= 3) { msgs = []; msgAge = 0; renderMsgs(); }   // a table-complete line stays for a couple of questions
+  }
+  function afterAnswer(key) {
+    if (!ctx || !S) return;
+    var res = ttBuilderReconcile(S, ctx.factStates());
+    save();
+    res.events.forEach(function (e) {
+      if (e.type === "promoted" && e.key === key) popRung = e.to;
+      if (e.type === "tableComplete") { msgs.push(ttBuilderMessage(e)); msgAge = 0; if (e.reward === "struct") riseT[e.table] = performance.now(); }
+    });
+    if (res.gain || res.events.some(function (e) { return e.type === "tableComplete"; })) octoUntil = performance.now() + 1500;
+    renderPips(); renderPearls(res.gain > 0); renderTray(); renderEdit(); renderMsgs();
+  }
+  return { start: start, stop: stop, setFact: setFact, afterAnswer: afterAnswer };
+}
+
+// ============================================================================
+// end tt_skin_builder_play.js
+// ============================================================================
+// ==== MODULE tt_skin_builder_play.js [END] ====
+</script>
+<script>
 // ==== MODULE tt_flow.js [BEGIN] ====
 // ============================================================================
 // tt_flow.js — child-facing SCREEN CONTROLLER (S0–S3), shared across ALL skins
@@ -5750,6 +6565,8 @@ function ttMakePractice(el) {
 //   opts.mounts {question,input,feedback,checkpoint}   play + overlay mounts
 //   opts.pairs                 Game 1 skin controller (ttMakePairs) — start/stop
 //   opts.pop                   Game 2 skin controller (ttMakePop) — start/stop
+//   opts.builder / opts.builderStore   Game 5 Reef Builder: the player (ttMakeBuilder — fills the dock at the
+//                              top of the play screen) and the per-player {load, save} record
 //   opts.profile {age}         single hardcoded child for now (S0 create = later)
 //   opts.rng, opts.onState(eng)
 // Returns { goWho, goSelect, goPlay, showMap, back, engine } — the host wires its buttons.
@@ -5793,9 +6610,13 @@ function ttStartFlow(opts) {
   var current = null, renderTs = 0, submitLock = false;
   var entry = "";                      // the inline answer-box string; shared by keypad + physical keyboard
   var correctiveMode = false;          // §7 copy-to-proceed gate (scaffold shown; await the copy)
+  // h22 (Kath): every scaffold carries an OK. It takes the scaffold away (the gate stays: the child still types the
+  // number), and a wrong try with the scaffold gone brings it back — they may simply have forgotten it.
+  var lastScaffold = null, scaffoldDismissed = false;
   var renderCount = 0;                  // test seam: number of questions rendered (see qCount in the API)
   var HELP_RT = 999999;                // "help me out" reports a wrong answer with a slow rt (not fluent)
   var sessionLive = false, screen = null;
+  var builderMode = false;            // h22: Game 5 Reef Builder — the play screen with the reef dock above it (one screen)
 
   // back target per screen; who (S0) is the root → no back. (S0 create-player = later.)
   var BACK = { who: null, select: "who", play: "select", pairs: "select", pop: "select", practice: "select", settings: "select", adult: "settings" };
@@ -5816,6 +6637,8 @@ function ttStartFlow(opts) {
     if (screen === "pairs" && name !== "pairs" && opts.pairs) opts.pairs.stop();   // leaving Game 1 (abandons a part-played placement board)
     if (screen === "pop" && name !== "pop" && opts.pop) opts.pop.stop();           // leaving Game 2
     if (screen === "practice" && name !== "practice" && opts.practice) opts.practice.stop();   // leaving Game 4
+    if (name !== "play") builderMode = false;
+    if (opts.builder && !(name === "play" && builderMode)) opts.builder.stop();                // hides the dock + shop (Quiz look returns)
     screen = name;
     ["who", "select", "play", "pairs", "pop", "practice", "settings", "adult"].forEach(function (k) { if (S[k]) S[k].style.display = (k === name) ? "" : "none"; });
     if (backBtn) backBtn.style.visibility = BACK[name] ? "visible" : "hidden";
@@ -5839,7 +6662,7 @@ function ttStartFlow(opts) {
   // pick before resolving, so an "only 11, 12" scope on a range-10 player degrades to "any", not
   // to an empty pool.
   function inRange(ts) { var N = getRange(); return (ts || []).filter(function (t) { return t <= N; }); }
-  function goPlay() { showScreen("play"); startSession(); }
+  function goPlay() { builderMode = false; showScreen("play"); startSession(); }
   // Game 1 (Pairs): a Class-C game hosted by this controller. It opens a REAL
   // session because evidence is worthless without one — tt_recordAnswer dates
   // an answer from d._servedTs, which only tt_markServed sets.
@@ -5858,6 +6681,21 @@ function ttStartFlow(opts) {
     var store = opts.practiceStore || { load: function () { return {}; }, save: function () {} };
     opts.practice.start({ N: N, tables: tables, defaultTable: ttPracticeDefault(tables, tt_introFrontierTable(eng), tt_getFactStates(eng)),
       loadPoints: store.load, savePoints: store.save });
+  }
+  // Game 5 (Reef Builder): Class D — the questions are the ordinary drill's (full evidence, keypad rungs
+  // included), on the SAME play screen, with the reef dock above and a different look (tt_skin_builder.css).
+  // The reef is a reward layer that reconciles against the engine (tt_getFactStates): progress from Quiz,
+  // Pairs and Pop counts too. tt_skin_builder.js.
+  var builderCtx = {
+    factStates: function () { return tt_getFactStates(eng); },
+    load: function () { return opts.builderStore ? opts.builderStore.load() : null; },
+    save: function (o) { if (opts.builderStore) opts.builderStore.save(o); },
+  };
+  function goBuilder() {
+    builderMode = true;
+    showScreen("play");
+    if (opts.builder) opts.builder.start(builderCtx);
+    startSession();
   }
   function goSettings() { showScreen("settings"); }   // child settings menu (sound/timer + adult link)
   function goAdult() {                         // host gates this behind the grown-up challenge
@@ -5928,6 +6766,7 @@ function ttStartFlow(opts) {
     setButtons("normal");
     entry = "";                          // fresh box for the next question (renderQuestion draws it empty)
     if (opts.scaffold) opts.scaffold.clear();
+    lastScaffold = null; scaffoldDismissed = false;
     fbPanel.clear();
     if (screen !== "play" || !sessionLive) return;   // a delayed advance after the child left
     sessionCtx.nowTs = Date.now();
@@ -5938,6 +6777,7 @@ function ttStartFlow(opts) {
 
   function renderQuestion() {
     renderCount++;                       // test seam: monotonic per served question (advance detection)
+    if (builderMode && opts.builder) opts.builder.setFact(current.factKey);
     var view = ttQuestionView(current);
     qPanel.render(view);
     iPanel.render(view);
@@ -5954,8 +6794,23 @@ function ttStartFlow(opts) {
       // moment, not a correction, so it keeps its array automatically.
       var isIntro = !!(current.flags && current.flags.intro);
       setButtons(isIntro ? "normal" : "why");
-      if (opts.scaffold) opts.scaffold.show(current, workingRungOf(current), armHint, isIntro ? null : 3);
+      if (opts.scaffold) showScaffold(current, workingRungOf(current), isIntro ? null : 3);
     }
+  }
+
+  function showScaffold(d, wr, level) {
+    lastScaffold = { d: d, wr: wr, level: level }; scaffoldDismissed = false;
+    opts.scaffold.show(d, wr, armHint, level, dismissScaffold);
+  }
+  function dismissScaffold() {
+    if (!opts.scaffold || !lastScaffold) return;
+    scaffoldDismissed = true;
+    cancelHint(); opts.scaffold.clear();
+    // "Show me why" stays on offer so the child can bring the working back (an intro reveal keeps its own buttons)
+    if (!(lastScaffold.d.flags && lastScaffold.d.flags.intro)) setButtons("why");
+  }
+  function reshowDismissed() {
+    if (scaffoldDismissed && lastScaffold) showScaffold(lastScaffold.d, lastScaffold.wr, lastScaffold.level);
   }
 
   // --- copy-to-proceed hint (h15) -------------------------------------------
@@ -5999,7 +6854,7 @@ function ttStartFlow(opts) {
     submitLock = false; correctiveMode = true; clearEntry(); fbPanel.clear(); cancelHint();
     var level = forceL3 ? 3 : opts.scaffold.levelFor(d, workingRungOf(d));
     setButtons(level === 3 ? "why" : "none");
-    opts.scaffold.show(d, workingRungOf(d), armHint, level);
+    showScaffold(d, workingRungOf(d), level);
   }
   // "Show me why" — the child asks for the array they were not given. Teaching only: it
   // records NOTHING (the wrong answer was already recorded when corrective opened), so it
@@ -6010,7 +6865,7 @@ function ttStartFlow(opts) {
     setButtons("none");                               // asked and answered — nothing left to offer
     cancelHint();
     var wr = workingRungOf(current);
-    opts.scaffold.show(current, wr, armHint, opts.scaffold.whyLevel(wr));   // h18: always an array
+    showScaffold(current, wr, opts.scaffold.whyLevel(wr));   // h18: always an array
   }
   // Correct: show "correct" and keep the answer + message on screen for 1s, then advance (§ user h10).
   function correctThenAdvance() { qPanel.mark("correct"); fbPanel.show({ kind: "correct", text: "correct" }); setTimeout(nextQuestion, 1000); }
@@ -6020,19 +6875,20 @@ function ttStartFlow(opts) {
     var correct = val === current.correctAnswer;
     if (correctiveMode) {                          // §7 copy-to-proceed: only the right answer advances
       if (correct) { correctiveMode = false; submitLock = true; correctThenAdvance(); }
-      else { clearEntry(); armHint(); }            // a wrong copy leaves the scaffold up; clear the box and re-offer the hint
+      else { clearEntry(); reshowDismissed(); armHint(); }   // a wrong copy leaves the scaffold up (or brings it back); clear the box and re-offer the hint
       return;
     }
     if (submitLock) return;
     var rt = Math.round(now() - renderTs);
     if (current.revealAnswer && !correct) {          // wrong copy of a shown answer: clear the box; the scaffold caption already shows it
       if (!opts.scaffold) fbPanel.show({ kind: "corrective", text: ttSolvedText(current) });
-      clearEntry(); return;
+      clearEntry(); reshowDismissed(); return;
     }
     submitLock = true;
     sessionCtx.nowTs = Date.now();
     tt_recordAnswer(eng, current, correct, rt, profile.age);
     persist();
+    if (builderMode && opts.builder) opts.builder.afterAnswer(current.factKey);   // pay what the engine now says was earned
     if (!correct && opts.scaffold) { enterCorrective(current, true); return; }   // §7: wrong → caption + copy (array on request)
     if (correct) { correctThenAdvance(); return; }
     fbPanel.show(ttFeedbackView(correct, current)); setTimeout(nextQuestion, 900);   // wrong, no scaffold (other skins)
@@ -6126,7 +6982,7 @@ function ttStartFlow(opts) {
   });
   showScreen("who");   // start at S0; host wires child→goSelect, drill→goPlay
 
-  return { goWho: goWho, goSelect: goSelect, goPlay: goPlay, goPairs: goPairs, goPop: goPop, goPractice: goPractice, showMap: showMap, goSettings: goSettings, goAdult: goAdult, selectPlayer: selectPlayer, back: back, helpMeOut: helpMeOut, showMeWhy: showMeWhy, isReveal: function () { return !!(current && current.revealAnswer); }, qCount: function () { return renderCount; }, setScope: setScope, getScope: getScope, setRange: setRange, getRange: getRange, setChildTables: setChildTables, getChildPick: getChildPick, engine: function () { return eng; } };
+  return { goWho: goWho, goSelect: goSelect, goPlay: goPlay, goPairs: goPairs, goPop: goPop, goPractice: goPractice, goBuilder: goBuilder, showMap: showMap, goSettings: goSettings, goAdult: goAdult, selectPlayer: selectPlayer, back: back, helpMeOut: helpMeOut, showMeWhy: showMeWhy, isReveal: function () { return !!(current && current.revealAnswer); }, qCount: function () { return renderCount; }, setScope: setScope, getScope: getScope, setRange: setRange, getRange: getRange, setChildTables: setChildTables, getChildPick: getChildPick, engine: function () { return eng; } };
 }
 
 // ============================================================================
@@ -6236,11 +7092,11 @@ function ttMakeScaffoldController(panel) {
   return {
     // levelOverride (h15): the corrective flow shows L3 only — the caption, no array —
     // until the child asks "show me why". Everything else still derives the level.
-    show: function (descriptor, workingRung, onDone, levelOverride) {
+    show: function (descriptor, workingRung, onDone, levelOverride, onOk) {
       var dims = ttDrillScaffoldDims(descriptor);
       var level = levelOverride || ttDrillScaffoldLevel(descriptor, workingRung);
       var lead = ttDrillScaffoldLead(descriptor, dims, level);
-      var info = { a: dims.a, b: dims.b, op: dims.op, unknown: dims.unknown, lead: lead, onDone: onDone, level: level };
+      var info = { a: dims.a, b: dims.b, op: dims.op, unknown: dims.unknown, lead: lead, onDone: onDone, onOk: onOk, level: level };
       var note = ttDrillSwapNote(dims, lead, level);
       if (note) info.note = note;
       panel.show(info);
@@ -6325,6 +7181,14 @@ if (typeof module !== "undefined" && module.exports) {
     save: function (o) { if (currentPlayerId) { try { localStorage.setItem("tt_practice_" + currentPlayerId, JSON.stringify(o)); } catch (_) {} } }
   };
 
+  // Game 5 Reef (tt_skin_builder_play). One record per player (pearls, pieces, positions, what has been
+  // paid); fact rungs stay in the engine. deletePlayer removes it.
+  var ttBuilder = ttMakeBuilder(ttEl("ttBuilderDock"));
+  var builderStore = {
+    load: function () { try { return JSON.parse(localStorage.getItem("tt_builder_" + currentPlayerId) || "null"); } catch (_) { return null; } },
+    save: function (o) { if (currentPlayerId) { try { localStorage.setItem("tt_builder_" + currentPlayerId, JSON.stringify(o)); } catch (_) {} } }
+  };
+
   var flow = ttStartFlow({
     screens: { who: ttEl("ttWho"), select: ttEl("ttSelect"), settings: ttEl("ttSettings"), adult: ttEl("ttAdult"), play: ttEl("ttPlay"), pairs: ttEl("ttPairs"), pop: ttEl("ttPop"), practice: ttEl("ttPractice") },
     back: ttEl("ttBack"), playerBadge: ttEl("ttPlayerBadge"),
@@ -6335,6 +7199,7 @@ if (typeof module !== "undefined" && module.exports) {
     pairs: ttPairs,
     pop: ttPop,
     practice: ttPractice, practiceStore: practiceStore,
+    builder: ttBuilder, builderStore: builderStore,
     profile: { age: 8 },
     onState: function (e) { if (currentPlayerId) { try { localStorage.setItem("tt_eng_" + currentPlayerId, tt_serialize(e)); } catch (_) {} } },
     // h19: the one-time 10 → 12 upgrade fired on leaving a game — tell the child on the Games screen.
@@ -6378,13 +7243,14 @@ if (typeof module !== "undefined" && module.exports) {
   renderPlayers();
 
   // --- Games + child settings ----------------------------------------------
-  // Four game slots. 1 = Pairs, 2 = Pop, 3 = the drill, 4 = Practice.
+  // Five game slots. 1 = Pairs, 2 = Pop, 3 = the drill, 4 = Practice, 5 = Reef Builder (shown before Quiz).
   Array.prototype.forEach.call(document.querySelectorAll(".tt-game"), function (b) {
     b.addEventListener("click", function () {
       if (this.id === "ttDrill") { ttEl("ttGamesMsg").textContent = ""; flow.goPlay(); }
       else if (this.id === "ttPairsBtn") { ttEl("ttGamesMsg").textContent = ""; flow.goPairs(); }
       else if (this.id === "ttPopBtn") { ttEl("ttGamesMsg").textContent = ""; flow.goPop(); }
       else if (this.id === "ttPracticeBtn") { ttEl("ttGamesMsg").textContent = ""; flow.goPractice(); }
+      else if (this.id === "ttBuilderBtn") { ttEl("ttGamesMsg").textContent = ""; flow.goBuilder(); }
       else { ttEl("ttGamesMsg").textContent = "This game isn't built yet."; }
     });
   });
@@ -6435,7 +7301,7 @@ if (typeof module !== "undefined" && module.exports) {
     var wasCurrent = p.id === currentPlayerId;
     if (wasCurrent) currentPlayerId = null;        // BEFORE leaving: the session-close save must not rewrite their data
     players = players.filter(function (x) { return x.id !== p.id; }); savePlayers();
-    try { localStorage.removeItem("tt_eng_" + p.id); localStorage.removeItem("tt_childpick_" + p.id); localStorage.removeItem("tt_practice_" + p.id); localStorage.removeItem("tt_scope_" + p.id); } catch (_) {}
+    try { localStorage.removeItem("tt_eng_" + p.id); localStorage.removeItem("tt_childpick_" + p.id); localStorage.removeItem("tt_practice_" + p.id); localStorage.removeItem("tt_scope_" + p.id); localStorage.removeItem("tt_builder_" + p.id); } catch (_) {}
     renderPlayers();
     if (wasCurrent) flow.goWho(); else renderDeleteList();
   }
