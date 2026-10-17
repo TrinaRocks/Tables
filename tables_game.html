@@ -731,14 +731,16 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 .tt-bd-pearl { display:inline-block; width:16px; height:16px; border-radius:50%; flex:none;
   background:radial-gradient(circle at 35% 30%,#fff 0,var(--bd-pearl) 40%,#c9bfae 100%); box-shadow:0 0 6px rgba(255,255,255,.5); }
 /* pills: the same flat button as everything else */
-.tt-bd-pearls { display:flex; align-items:center; gap:6px; background:var(--bd-panel); border-radius:20px;
+.tt-bd-pearls { display:flex; align-items:center; gap:6px; background:rgba(14,58,106,.84); border-radius:20px;
   padding:4px 14px 4px 8px; font-size:18px; font-weight:700; color:var(--bd-ink); transition:transform .2s; flex:none; }
 .tt-bd-pearls.bump { transform:scale(1.18); }
 
 /* --- the dock ------------------------------------------------------------------ */
-.tt-bd-dock { display:none; width:100%; flex-direction:column; align-items:center; gap:6px; color:var(--bd-ink); min-width:0; }
+.tt-bd-dock { display:none; position:relative; width:100%; flex-direction:column; align-items:stretch; gap:0; color:var(--bd-ink); min-width:0; }
 #ttPlay.tt-bd-on .tt-bd-dock { display:flex; }
-.tt-bd-head { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding-left:52px; }   /* clears the back button */
+/* the header FLOATS over the top of the picture (translucent buttons) — no strip above it, no frame */
+.tt-bd-head { position:absolute; z-index:3; left:0; right:0; top:0; display:flex; align-items:center; gap:8px; min-height:44px; padding:6px 10px 0 52px; pointer-events:none; }
+.tt-bd-head > * { pointer-events:auto; }
 .tt-bd-pips { display:flex; gap:5px; flex:1 1 auto; justify-content:center; }
 .tt-bd-pips i { width:10px; height:10px; border-radius:50%; border:1.5px solid var(--bd-line); transition:background .3s; }
 .tt-bd-pips i.on { background:var(--bd-pearl); border-color:var(--bd-pearl); }
@@ -746,12 +748,18 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 .tt-bd-pips i.k.on { background:var(--bd-warn); border-color:var(--bd-warn); }
 .tt-bd-pips i.pop { animation:tt-bd-pip .6s ease-out; }
 @keyframes tt-bd-pip { 40% { scale:1.7; } }
-.tt-bd-shopbtn { flex:none; padding:8px 18px; border:none; background:var(--bd-panel); color:var(--bd-ink); border-radius:20px;
+.tt-bd-shopbtn { flex:none; padding:8px 18px; border:none; background:rgba(14,58,106,.84); color:var(--bd-ink); border-radius:20px;
   font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; }
 .tt-bd-shopbtn:active, .tt-bd-shopbtn.sel { background:#2060b0; }
-.tt-bd-scene { display:flex; justify-content:center; width:100%; }
-.tt-bd-cv { width:min(100%, max(220px, calc((var(--tt-vh, 100vh) - 430px) * 4 / 3))); aspect-ratio:4/3; border-radius:12px;
-  touch-action:none; background:#0a1e48; display:block; }
+.tt-bd-scene { display:block; width:100%; min-height:0; }
+/* PORTRAIT picture: edge to edge, no corners; tall enough to show the whole 4:3 scene plus open water above it
+   (the canvas fits the scene into whatever box this gives it, never cropping it) */
+.tt-bd-cv { width:100%; height:max(75vw, min(95vw, calc(var(--tt-vh, 100vh) - 390px))); border-radius:0; touch-action:none; background:#0a1e48; display:block; }
+#ttPlay.tt-bd-on:has(.tt-bd-edit.on, .tt-bd-tray.on) .tt-bd-cv { height:max(70vw, min(95vw, calc(var(--tt-vh, 100vh) - 480px))); }
+/* full-bleed: cancel the screen's side padding and the top padding */
+#ttPlay.tt-bd-on .tt-bd-dock { margin:-6px -14px 0; width:calc(100% + 28px); }
+.tt-bd-over { display:flex; flex-direction:column; gap:4px; width:100%; padding:4px 14px 0; box-sizing:border-box; }
+.tt-bd-over:empty { display:none; }
 .tt-bd-edit { display:none; align-items:center; justify-content:space-between; gap:8px; width:100%; background:var(--bd-panel2); border:1px solid var(--bd-ok);
   border-radius:12px; padding:2px 8px; font-size:12px; line-height:1.2; }
 .tt-bd-edit.on { display:flex; }
@@ -768,7 +776,6 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 .tt-bd-chip canvas { display:block; width:34px; height:34px; }
 
 /* the reef gives up a little height while the rearranging bar / tray are showing, so everything below stays on screen */
-#ttPlay.tt-bd-on:has(.tt-bd-edit.on, .tt-bd-tray.on) .tt-bd-cv { width:min(100%, max(160px, calc((var(--tt-vh, 100vh) - 520px) * 4 / 3))); }
 
 /* --- shop: a card over the screen ------------------------------------------------- */
 .tt-bd-shopcard { background:#0a2a52; color:var(--bd-ink); width:min(92vw, 420px); }
@@ -822,10 +829,10 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
    no room otherwise); OK or the next question brings the input back; the keyboard still types meanwhile */
 @media (orientation:portrait) {
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input { display:none; }
-  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:min(100%, 210px); }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { height:min(52vw, 210px); }
 }
 @media (orientation:portrait) and (max-height:740px) {
-  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:min(100%, 130px); }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { height:min(36vw, 130px); }
 }
 
 /* --- LANDSCAPE (every size, phone to PC): dock left; question / buttons / help stacked right ---- */
@@ -837,18 +844,21 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     --bd-tile-min: clamp(46px, 6vw, 84px);
     display:grid; align-items:start; justify-items:center; gap:clamp(6px, 1.4vh, 12px) clamp(10px, 2.4vw, 28px);
     padding:6px clamp(10px, 2vw, 28px) 8px 10px; height:var(--tt-vh, 100vh); min-height:0; overflow:hidden;
-    grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto auto minmax(0,1fr); grid-template-areas:none; }
+    grid-template-rows:auto auto auto auto minmax(0,1fr); grid-template-areas:none; }
   /* EXPLICIT grid lines, not named areas: every child is placed by column/row number, and the drill's own
      landscape placement (named areas, which Quiz uses on touch devices) is overridden property by property —
      so nothing here depends on how a browser resolves two competing templates. */
   #ttPlay.tt-bd-on > * { grid-area:auto; }
-  /* the dock is never narrower than its header (back clearance + pearls + pips + Shop ≈ 330px); the CANVAS is what
-     shrinks (height-limited, centred) when the rearranging bar / tray take height — shrinking the whole dock pushed
-     Shop out over the question on an iPhone 12 mini with the tray showing (found by the check at 812×340 + insets) */
-  #ttPlay.tt-bd-on .tt-bd-dock { grid-column:1; grid-row:1 / -1; align-self:start; width:max(330px, min(46vw, calc((var(--tt-vh, 100vh) - 74px) * 4 / 3))); }
-  #ttPlay.tt-bd-on .tt-bd-cv { width:min(100%, calc((var(--tt-vh, 100vh) - 74px) * 4 / 3)); }
-  #ttPlay.tt-bd-on:has(.tt-bd-edit.on, .tt-bd-tray.on) .tt-bd-cv { width:min(100%, calc((var(--tt-vh, 100vh) - 74px - 84px) * 4 / 3)); }
-  #ttPlay.tt-bd-on .tt-question { grid-column:2; grid-row:1; padding:0; margin:4px 0 0; }
+  /* EDGE TO EDGE (Kath h22): the picture runs from the screen's left/top/bottom edges with no frame; the header floats on it;
+     the rearranging bar / table line / tray float over its foot. The dock column is never narrower than the header (~330px). */
+  #ttPlay.tt-bd-on { position:relative; --bd-dockw:max(330px, min(52vw, calc(var(--tt-vh, 100vh) * 4 / 3))); padding-left:0; padding-top:0; padding-bottom:0;
+    grid-template-columns:var(--bd-dockw) minmax(0,1fr); }
+  #ttPlay.tt-bd-on .tt-bd-dock { position:absolute; left:0; top:0; bottom:0; margin:0; width:var(--bd-dockw); }
+  #ttPlay.tt-bd-on .tt-bd-scene { flex:1 1 auto; height:100%; }
+  #ttPlay.tt-bd-on .tt-bd-cv { width:100%; height:min(100%, var(--bd-dockw)); }
+  #ttPlay.tt-bd-on .tt-bd-over { position:absolute; z-index:2; left:8px; right:8px; bottom:8px; width:auto; padding:0; }
+  #ttPlay.tt-bd-on .tt-bd-edit, #ttPlay.tt-bd-on .tt-bd-tray { background:rgba(20,56,111,.92); }
+  #ttPlay.tt-bd-on .tt-question { grid-column:2; grid-row:1; padding:0; margin:10px 0 0; }
   #ttPlay.tt-bd-on .tt-input { grid-column:2; grid-row:2; align-self:start; height:auto; width:100%; }
   #ttPlay.tt-bd-on .tt-help { grid-column:2; grid-row:3; }
   #ttPlay.tt-bd-on .tt-feedback, #ttPlay.tt-bd-on .tt-feedback:empty { grid-column:2; grid-row:4; text-align:center; }
@@ -859,6 +869,17 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-scaffold-slot { grid-row:2; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-help { grid-row:3; }
   #ttPlay.tt-bd-on .tt-scaffold-ok { padding:clamp(8px,1.6vh,12px) clamp(26px,3vw,44px); font-size:clamp(17px, 2.6vh, 22px); }
+}
+/* VERY SHORT landscape (Kath h22, iPhone 12 mini in Safari with the tab bar open ≈ 812×250): the right column
+   (question + 4-row keypad + Help) needs ~260px and there is ~235 — the question ended up under keys 1–3.
+   Here the keypad becomes TWO rows of six (1–6 / 7 8 9 ⌫ 0 OK), keys are shorter, Help me out is slimmer. */
+@media (orientation:landscape) and (max-height:340px) {
+  #ttPlay.tt-bd-on .tt-pad { grid-template-columns:repeat(6, minmax(0, 1fr)); width:100%; max-width:384px; gap:5px; }   /* fills the column, never wider than it */
+  #ttPlay.tt-bd-on .tt-key { height:clamp(30px, 13vh, 40px); font-size:clamp(16px, 6vh, 22px); }
+  #ttPlay.tt-bd-on .tt-help { padding:6px 16px; font-size:14px; }
+  #ttPlay.tt-bd-on { gap:4px clamp(10px, 2.4vw, 28px); }
+  #ttPlay.tt-bd-on .tt-tiles { gap:5px; }
+  #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many { gap:5px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tt-bd-pips i.pop { animation:none; }
@@ -903,7 +924,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     <button id="ttSettingsDone" class="tt-choice" type="button">Games</button>
     <button id="ttAdultLink" class="tt-subtle" type="button">adult settings</button>
     <!-- h20 (Kath): which build is loaded — quote it with device reports. Filled by build.sh. -->
-    <div class="tt-build-stamp">build 369dc9 · 2026-10-17 18:02</div>
+    <div class="tt-build-stamp">build d49dde · 2026-10-17 18:25</div>
   </section>
 
   <section id="ttAdult" class="tt-screen" style="display:none">
@@ -6267,6 +6288,10 @@ function ttMakeBuilder(el) {
   var placing = null, drag = null, pointer = null, riseT = {}, octoUntil = 0, msgs = [], msgAge = 0;
   var factKey = null, popRung = 0;
   var bubbles = [], bubAcc = 0, bubLast = 0;
+  // Canvas mapping (h22, edge-to-edge reef): the scene is 480x360 UNITS; the canvas fills whatever box CSS gives it.
+  // SC = device px per unit; E = extra open water ABOVE the scene (units) when the box is taller than 4:3;
+  // OX = extra water at each SIDE (units) when it is wider. Saved positions stay in scene units, so they never move.
+  var SC = 2, E = 0, OX = 0, ro = null;
   var BUB_TICK = 0.08, BUB_SPAWN = 0.18 * H / 460 * 2 / 3;   // prototype recipe: 2/3 of the bonds-game density
 
   function div(cls, text) { var d = document.createElement("div"); d.className = cls; if (text != null) d.textContent = text; return d; }
@@ -6278,7 +6303,7 @@ function ttMakeBuilder(el) {
   // --- background, den, octopus ----------------------------------------------
   function bubTick() {
     if (Math.random() < BUB_SPAWN) bubbles.push({ x: 15 + Math.random() * (W - 30), y: H - 10, r: 4 + Math.random() * 6, v: .6 + Math.random() * 1.2 });
-    bubbles = bubbles.filter(function (b) { b.x += (Math.random() - .5) * .8; b.y -= b.v; return b.y + b.r > 0; });
+    bubbles = bubbles.filter(function (b) { b.x += (Math.random() - .5) * .8; b.y -= b.v; return b.y + b.r > -E; });
   }
   function stepBubbles(t) {
     if (!bubLast) bubLast = t; bubAcc += Math.min(t - bubLast, .25); bubLast = t;
@@ -6292,11 +6317,12 @@ function ttMakeBuilder(el) {
     });
   }
   function drawBack(t) {
-    ["#0e2a5a", "#0a1e48", "#081638"].forEach(function (col, i) { g.fillStyle = col; g.fillRect(0, i * H / 3, W, H / 3); });
-    g.fillStyle = "#1a3a6a"; [60, 160, 300, 400, 450].forEach(function (rx) { g.beginPath(); g.moveTo(rx - 18, 0); g.lineTo(rx + 18, 0); g.lineTo(rx + 6, H * .4); g.lineTo(rx - 6, H * .4); g.closePath(); g.fill(); });
-    g.globalAlpha = .07; g.fillStyle = "#bfe6ff"; [90, 230, 370].forEach(function (rx, i) { var sw = Math.sin(t * .3 + i) * 14; g.beginPath(); g.moveTo(rx + sw, 0); g.lineTo(rx + 40 + sw, 0); g.lineTo(rx - 30, FT); g.lineTo(rx - 70, FT); g.closePath(); g.fill(); }); g.globalAlpha = 1;
+    var XL = -OX - 2, XR = W + OX + 2, TOP = -E - 2;
+    ["#0e2a5a", "#0a1e48", "#081638"].forEach(function (col, i) { g.fillStyle = col; var y0 = i ? i * H / 3 : TOP; g.fillRect(XL, y0, XR - XL, (i + 1) * H / 3 - y0 + 1); });
+    g.fillStyle = "#1a3a6a"; [60, 160, 300, 400, 450].forEach(function (rx) { g.beginPath(); g.moveTo(rx - 18, TOP); g.lineTo(rx + 18, TOP); g.lineTo(rx + 6, H * .4); g.lineTo(rx - 6, H * .4); g.closePath(); g.fill(); });
+    g.globalAlpha = .07; g.fillStyle = "#bfe6ff"; [90, 230, 370].forEach(function (rx, i) { var sw = Math.sin(t * .3 + i) * 14; g.beginPath(); g.moveTo(rx + sw, TOP); g.lineTo(rx + 40 + sw, TOP); g.lineTo(rx - 30, FT); g.lineTo(rx - 70, FT); g.closePath(); g.fill(); }); g.globalAlpha = 1;
     var gr = g.createLinearGradient(0, FT - 14, 0, H); gr.addColorStop(0, "#5a5a78"); gr.addColorStop(1, "#3c3c58"); g.fillStyle = gr;
-    g.beginPath(); g.moveTo(0, FT); for (var x = 0; x <= W; x += 40) g.quadraticCurveTo(x + 20, FT - 8 + ((x / 40) % 2 ? 6 : -2), x + 40, FT); g.lineTo(W, H); g.lineTo(0, H); g.closePath(); g.fill();
+    g.beginPath(); g.moveTo(XL, FT); for (var x = XL; x <= XR; x += 40) g.quadraticCurveTo(x + 20, FT - 8 + ((Math.round(x / 40)) % 2 ? 6 : -2), x + 40, FT); g.lineTo(XR + 40, H + E + 2); g.lineTo(XL, H + E + 2); g.closePath(); g.fill();
     stepBubbles(t); drawBubbles();
   }
   function octoPos() { var c = S.placed.filter(function (i) { return i.type === "st2"; })[0]; return c ? { x: c.x, y: c.y - 60 } : { x: 84, y: H - 34 - 26 }; }
@@ -6350,8 +6376,18 @@ function ttMakeBuilder(el) {
     drawOf(it.type)(g, t, {}); g.restore();
   }
 
+  // --- canvas sizing (edge-to-edge) ------------------------------------------------
+  function sizeCanvas() {
+    var w = cv.clientWidth, h = cv.clientHeight; if (!w || !h) return;
+    var dpr = Math.min(2, window.devicePixelRatio || 1), pw = Math.round(w * dpr), ph = Math.round(h * dpr);
+    if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
+    SC = Math.min(pw / W, ph / H);                              // fit the whole scene, never crop it
+    E = Math.max(0, ph / SC - H); OX = Math.max(0, (pw / SC - W) / 2);
+  }
+
   // --- interaction ----------------------------------------------------------------
-  function cpos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * W / r.width, y: (e.clientY - r.top) * H / r.height }; }
+  function cpos(e) { var r = cv.getBoundingClientRect(); return { x: (e.clientX - r.left) * (cv.width / r.width) / SC - OX, y: (e.clientY - r.top) * (cv.height / r.height) / SC - E }; }
+  function toPath() { g.setTransform(SC, 0, 0, SC, SC * OX, SC * E); }
   function structPath(it) { var T = def(it.type).table, an = TT_BUILDER_STRUCTS[T].anchor; g.translate(it.x - an[0], it.y - an[1]); TT_BD_STRUCT[T].path(g); }
   function clampFor(it, p) {
     var k = kindOf(it);
@@ -6364,15 +6400,15 @@ function ttMakeBuilder(el) {
       var q = posOf(it, t), s = scaleAt(it), fl = kindOf(it) === "floor", cy = fl ? q.y - 16 * s : q.y, r = (fl ? 26 : 22) * s;
       if (Math.hypot(p.x - q.x, p.y - cy) < r) return it; }
     for (i = 0; i < arr.length; i++) { it = arr[i]; if (kindOf(it) !== "big") continue;
-      g.save(); g.setTransform(2, 0, 0, 2, 0, 0); structPath(it); var r2 = g.isPointInPath(p.x * 2, p.y * 2); g.restore(); if (r2) return it; }
+      g.save(); toPath(); structPath(it); var r2 = g.isPointInPath((p.x + OX) * SC, (p.y + E) * SC); g.restore(); if (r2) return it; }
     return null;
   }
   // Floor pieces can stand on the ground or on top of a structure: surfaceY = topmost solid point of a
   // structure at column x; a dropped piece snaps to the nearest surface in a band round the pointer.
   function surfaceY(b, x) {
     var bb = TT_BD_BB[def(b.type).table];
-    g.save(); g.setTransform(2, 0, 0, 2, 0, 0); structPath(b);
-    var r = null; for (var y = b.y + bb[2] - 2; y <= b.y + bb[3]; y += 2) { if (g.isPointInPath(x * 2, y * 2)) { r = y; break; } }
+    g.save(); toPath(); structPath(b);
+    var r = null; for (var y = b.y + bb[2] - 2; y <= b.y + bb[3]; y += 2) { if (g.isPointInPath((x + OX) * SC, (y + E) * SC)) { r = y; break; } }
     g.restore(); return r;
   }
   function supportFor(x, py) {
@@ -6413,7 +6449,7 @@ function ttMakeBuilder(el) {
   // --- render loop -----------------------------------------------------------------
   function frame(ms) {
     if (!running) return;
-    var t = ms / 1000; g.setTransform(2, 0, 0, 2, 0, 0);
+    var t = ms / 1000; g.setTransform(SC, 0, 0, SC, SC * OX, SC * E);
     drawBack(t);
     var byY = function (a, b) { return a.y - b.y; }, isBig = function (i) { return kindOf(i) === "big"; };
     S.placed.filter(isBig).sort(byY).forEach(function (it) { drawItem(it, t); });
@@ -6482,11 +6518,14 @@ function ttMakeBuilder(el) {
     head.appendChild(pearlsEl); head.appendChild(pipsEl); head.appendChild(shopBtn); el.appendChild(head);
     var scene = div("tt-bd-scene"); cv = document.createElement("canvas"); cv.className = "tt-bd-cv"; cv.width = W * 2; cv.height = H * 2; scene.appendChild(cv); el.appendChild(scene);
     g = cv.getContext("2d");
+    // the rearranging bar, the table-complete line and the tray: UNDER the reef in portrait, floating over its foot in landscape
+    var over = div("tt-bd-over");
     editEl = div("tt-bd-edit"); editEl.appendChild(div("", "Rearranging is open: drag pieces, then Done."));
     editEl.appendChild(btn("tt-bd-done", "Done", function () { S.edit = false; drag = null; msgs = []; save(); renderEdit(); renderMsgs(); }));
-    el.appendChild(editEl);
-    noteEl = div("tt-bd-note"); el.appendChild(noteEl);
-    trayEl = div("tt-bd-tray"); el.appendChild(trayEl);
+    noteEl = div("tt-bd-note"); trayEl = div("tt-bd-tray");
+    over.appendChild(noteEl); over.appendChild(editEl); over.appendChild(trayEl); el.appendChild(over);
+    if (ro) { ro.disconnect(); ro = null; }
+    if (typeof ResizeObserver !== "undefined") { ro = new ResizeObserver(sizeCanvas); ro.observe(cv); }
     cv.addEventListener("pointerdown", onDown); cv.addEventListener("pointermove", onMove);
     cv.addEventListener("pointerup", endDrag); cv.addEventListener("pointercancel", endDrag);
     cv.addEventListener("pointerleave", function () { if (!drag) pointer = null; });
@@ -6503,7 +6542,7 @@ function ttMakeBuilder(el) {
   // Called by the flow when #ttPlay is shown in builder mode.
   function start(c) {
     ctx = c; stop(); build();
-    el.style.display = ""; el.parentNode.classList.add("tt-bd-on");
+    el.style.display = ""; el.parentNode.classList.add("tt-bd-on"); sizeCanvas();
     S = ttBuilderNormalize(ctx.load());
     var res = ttBuilderReconcile(S, ctx.factStates());       // catch up on everything the engine has recorded
     msgs = []; msgAge = 0; factKey = null; popRung = 0;
@@ -6518,10 +6557,10 @@ function ttMakeBuilder(el) {
     placing = null; drag = null; pointer = null; bubbles = []; bubAcc = 0; bubLast = 0;
     for (var i = 0; i < 260; i++) bubTick();                  // warm-up so the reef starts populated
     renderPearls(res.gain > 0); renderTray(); renderEdit(); renderMsgs(); renderPips();
-    running = true; raf = requestAnimationFrame(frame);
+    sizeCanvas(); running = true; raf = requestAnimationFrame(frame);
   }
   function stop() {
-    running = false; if (raf) cancelAnimationFrame(raf); raf = 0; drag = null; placing = null;
+    running = false; if (raf) cancelAnimationFrame(raf); raf = 0; drag = null; placing = null; if (ro) { ro.disconnect(); ro = null; }
     if (shopOv) shopOv.style.display = "none";
     el.style.display = "none"; if (el.parentNode) el.parentNode.classList.remove("tt-bd-on");
   }
