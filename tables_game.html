@@ -837,21 +837,27 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     --bd-tile-min: clamp(46px, 6vw, 84px);
     display:grid; align-items:start; justify-items:center; gap:clamp(6px, 1.4vh, 12px) clamp(10px, 2.4vw, 28px);
     padding:6px clamp(10px, 2vw, 28px) 8px 10px; height:var(--tt-vh, 100vh); min-height:0; overflow:hidden;
-    grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto auto minmax(0,1fr);
-    grid-template-areas:"dock question" "dock input" "dock help" "dock feedback" "dock array"; }
-  #ttPlay.tt-bd-on .tt-bd-dock { grid-row:1 / -1; align-self:start; width:min(46vw, calc((var(--tt-vh, 100vh) - 74px) * 4 / 3)); }
-  #ttPlay.tt-bd-on .tt-bd-cv { width:100%; }
-  #ttPlay.tt-bd-on:has(.tt-bd-edit.on, .tt-bd-tray.on) .tt-bd-dock { width:min(46vw, calc((var(--tt-vh, 100vh) - 74px - 84px) * 4 / 3)); }
-  #ttPlay.tt-bd-on .tt-question { grid-area:question; padding:0; margin-top:4px; }
-  #ttPlay.tt-bd-on .tt-input { grid-area:input; align-self:start; }
-  #ttPlay.tt-bd-on .tt-help { grid-area:help; }
-  #ttPlay.tt-bd-on .tt-feedback, #ttPlay.tt-bd-on .tt-feedback:empty { grid-area:feedback; text-align:center; }
-  #ttPlay.tt-bd-on .tt-scaffold-slot { grid-area:array; align-self:stretch; justify-self:stretch; height:100%; width:100%; max-height:none; overflow:hidden; }
+    grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto auto minmax(0,1fr); grid-template-areas:none; }
+  /* EXPLICIT grid lines, not named areas: every child is placed by column/row number, and the drill's own
+     landscape placement (named areas, which Quiz uses on touch devices) is overridden property by property —
+     so nothing here depends on how a browser resolves two competing templates. */
+  #ttPlay.tt-bd-on > * { grid-area:auto; }
+  /* the dock is never narrower than its header (back clearance + pearls + pips + Shop ≈ 330px); the CANVAS is what
+     shrinks (height-limited, centred) when the rearranging bar / tray take height — shrinking the whole dock pushed
+     Shop out over the question on an iPhone 12 mini with the tray showing (found by the check at 812×340 + insets) */
+  #ttPlay.tt-bd-on .tt-bd-dock { grid-column:1; grid-row:1 / -1; align-self:start; width:max(330px, min(46vw, calc((var(--tt-vh, 100vh) - 74px) * 4 / 3))); }
+  #ttPlay.tt-bd-on .tt-bd-cv { width:min(100%, calc((var(--tt-vh, 100vh) - 74px) * 4 / 3)); }
+  #ttPlay.tt-bd-on:has(.tt-bd-edit.on, .tt-bd-tray.on) .tt-bd-cv { width:min(100%, calc((var(--tt-vh, 100vh) - 74px - 84px) * 4 / 3)); }
+  #ttPlay.tt-bd-on .tt-question { grid-column:2; grid-row:1; padding:0; margin:4px 0 0; }
+  #ttPlay.tt-bd-on .tt-input { grid-column:2; grid-row:2; align-self:start; height:auto; width:100%; }
+  #ttPlay.tt-bd-on .tt-help { grid-column:2; grid-row:3; }
+  #ttPlay.tt-bd-on .tt-feedback, #ttPlay.tt-bd-on .tt-feedback:empty { grid-column:2; grid-row:4; text-align:center; }
+  #ttPlay.tt-bd-on .tt-scaffold-slot { grid-column:2; grid-row:5; align-self:stretch; justify-self:stretch; height:100%; width:100%; max-height:none; overflow:hidden; }
   /* the scaffold takes the buttons' place; OK (inside it) gives them back */
-  #ttPlay.tt-bd-on:has(.tt-scaffold) { grid-template-rows:auto minmax(0,1fr) auto;
-    grid-template-areas:"dock question" "dock scaf" "dock help"; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) { grid-template-rows:auto minmax(0,1fr) auto; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback:empty { display:none !important; }
-  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-scaffold-slot { grid-area:scaf; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-scaffold-slot { grid-row:2; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-help { grid-row:3; }
   #ttPlay.tt-bd-on .tt-scaffold-ok { padding:clamp(8px,1.6vh,12px) clamp(26px,3vw,44px); font-size:clamp(17px, 2.6vh, 22px); }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -897,7 +903,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     <button id="ttSettingsDone" class="tt-choice" type="button">Games</button>
     <button id="ttAdultLink" class="tt-subtle" type="button">adult settings</button>
     <!-- h20 (Kath): which build is loaded — quote it with device reports. Filled by build.sh. -->
-    <div class="tt-build-stamp">build ad6751 · 2026-10-17 15:39</div>
+    <div class="tt-build-stamp">build 369dc9 · 2026-10-17 18:02</div>
   </section>
 
   <section id="ttAdult" class="tt-screen" style="display:none">
