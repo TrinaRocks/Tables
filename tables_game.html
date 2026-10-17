@@ -707,26 +707,36 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 /* ==== CSS tt_skin_builder.css [BEGIN] ==== */
 /* ============================================================================
    tt_skin_builder.css — Game 5 "Reef Builder" presentation.
-   ONE screen: the reef dock (#ttBuilderDock) sits above the ordinary Quiz play elements, which are
-   RESTYLED here so the game does not look like Quiz (Kath h22: same questions, different look).
-   Every rule is scoped under #ttPlay.tt-bd-on (set by the builder player), so Quiz is untouched.
-   Palette from the Builder prototype: deep reef navy, blue-lined panels, pearl white, warm gold.
-   Layout: portrait = column (dock, question, input, help); landscape (the shell's query: phone
-   landscape or touch tablet) = grid — dock LEFT, question middle, input RIGHT.
+   ONE screen: the reef DOCK (#ttBuilderDock — pearls, pips, Shop, the reef scene, rearranging bar, tray)
+   sits above the ordinary Quiz play elements, which are RESTYLED here (same questions, family look).
+   Every rule is scoped under #ttPlay.tt-bd-on (set by the builder player) so Quiz itself is untouched.
+
+   FAMILY LOOK (Kath h22): buttons, keys, tiles, pills and Help me out take the Quiz/Pop button language —
+   flat navy #0e3a6a, no outline ring, small radius, #d0eeff bold text. The question is plain text, the answer
+   box is Quiz's. What stays Reef: the dock, the reef-deep page, the pearl/pips row, the green OK.
+
+   FITTING (Kath h22, "match Pop, not Quiz"): sizes come from the window — clamp()s on vw/vh, as Pop does for its
+   question — instead of Quiz's content-sized grid, so nothing depends on how many tiles a question has.
+   Landscape (any): dock LEFT; question, tiles/keypad, Help me out stacked on the RIGHT. A scaffold takes the
+   tiles'/keypad's place (OK brings them back). Portrait: dock on top, the same stack beneath.
+
+   STATIC (Kath h22): things must not move as the child works. The answer box has a FIXED size (room for 3 digits —
+   it does not grow when typing starts) and the feedback line always reserves its row.
    ============================================================================ */
 
 .tt-bd-dock, .tt-bd-shop, #ttPlay.tt-bd-on {
-  --bd-panel:#0e2a5a; --bd-panel2:#14386f; --bd-line:#2a6a9a; --bd-ink:#e8f4ff; --bd-dim:#8fb4d8;
+  --bd-panel:#0e3a6a; --bd-panel2:#14386f; --bd-line:#2a6a9a; --bd-ink:#d0eeff; --bd-dim:#8fb4d8;
   --bd-pearl:#f4efe6; --bd-ok:#5fd6a0; --bd-warn:#ffc34d; --bd-accent:#cc5588;
 }
 .tt-bd-pearl { display:inline-block; width:16px; height:16px; border-radius:50%; flex:none;
   background:radial-gradient(circle at 35% 30%,#fff 0,var(--bd-pearl) 40%,#c9bfae 100%); box-shadow:0 0 6px rgba(255,255,255,.5); }
-.tt-bd-pearls { display:flex; align-items:center; gap:6px; background:var(--bd-panel); border:1px solid var(--bd-line); border-radius:20px;
-  padding:3px 12px 3px 7px; font-size:18px; font-weight:700; color:var(--bd-ink); transition:transform .2s; flex:none; }
+/* pills: the same flat button as everything else */
+.tt-bd-pearls { display:flex; align-items:center; gap:6px; background:var(--bd-panel); border-radius:20px;
+  padding:4px 14px 4px 8px; font-size:18px; font-weight:700; color:var(--bd-ink); transition:transform .2s; flex:none; }
 .tt-bd-pearls.bump { transform:scale(1.18); }
 
 /* --- the dock ------------------------------------------------------------------ */
-.tt-bd-dock { display:none; width:100%; flex-direction:column; align-items:center; gap:6px; color:var(--bd-ink); }
+.tt-bd-dock { display:none; width:100%; flex-direction:column; align-items:center; gap:6px; color:var(--bd-ink); min-width:0; }
 #ttPlay.tt-bd-on .tt-bd-dock { display:flex; }
 .tt-bd-head { display:flex; align-items:center; gap:8px; width:100%; min-height:44px; padding-left:52px; }   /* clears the back button */
 .tt-bd-pips { display:flex; gap:5px; flex:1 1 auto; justify-content:center; }
@@ -736,30 +746,34 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 .tt-bd-pips i.k.on { background:var(--bd-warn); border-color:var(--bd-warn); }
 .tt-bd-pips i.pop { animation:tt-bd-pip .6s ease-out; }
 @keyframes tt-bd-pip { 40% { scale:1.7; } }
-.tt-bd-shopbtn { flex:none; padding:7px 16px; border:1px solid var(--bd-line); background:var(--bd-panel); color:var(--bd-ink); border-radius:16px;
+.tt-bd-shopbtn { flex:none; padding:8px 18px; border:none; background:var(--bd-panel); color:var(--bd-ink); border-radius:20px;
   font-size:16px; font-weight:700; cursor:pointer; font-family:inherit; }
-.tt-bd-shopbtn.sel { background:var(--bd-accent); border-color:var(--bd-accent); }
+.tt-bd-shopbtn:active, .tt-bd-shopbtn.sel { background:#2060b0; }
 .tt-bd-scene { display:flex; justify-content:center; width:100%; }
-.tt-bd-cv { width:min(100%, max(220px, calc((var(--tt-vh, 100vh) - 430px) * 4 / 3))); aspect-ratio:4/3; border-radius:12px; border:1px solid var(--bd-line);
+.tt-bd-cv { width:min(100%, max(220px, calc((var(--tt-vh, 100vh) - 430px) * 4 / 3))); aspect-ratio:4/3; border-radius:12px;
   touch-action:none; background:#0a1e48; display:block; }
 .tt-bd-edit { display:none; align-items:center; justify-content:space-between; gap:8px; width:100%; background:var(--bd-panel2); border:1px solid var(--bd-ok);
-  border-radius:12px; padding:4px 10px; font-size:13px; }
+  border-radius:12px; padding:2px 8px; font-size:12px; line-height:1.2; }
 .tt-bd-edit.on { display:flex; }
-.tt-bd-done { padding:5px 14px; border:0; border-radius:8px; background:var(--bd-ok); color:#052a1a; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
-.tt-bd-note { font-size:14px; color:var(--bd-pearl); text-align:center; }
+.tt-bd-done { padding:3px 12px; flex:none; border:0; border-radius:8px; background:var(--bd-ok); color:#052a1a; font-weight:700; font-size:14px; cursor:pointer; font-family:inherit; }
+.tt-bd-note { font-size:13px; line-height:1.25; color:var(--bd-pearl); text-align:center; max-height:2.6em; overflow:hidden; }
 .tt-bd-note:empty { display:none; }
 .tt-bd-tray { display:none; align-items:center; justify-content:center; gap:8px; width:100%; background:var(--bd-panel2); border:1px dashed var(--bd-warn);
-  border-radius:12px; padding:4px 10px; flex-wrap:wrap; }
+  border-radius:12px; padding:2px 8px; flex-wrap:nowrap; overflow-x:auto; scrollbar-width:none; }
+.tt-bd-tray::-webkit-scrollbar { display:none; }
 .tt-bd-tray.on { display:flex; }
-.tt-bd-tray small { color:var(--bd-warn); font-weight:600; }
-.tt-bd-chip { border:2px solid transparent; background:var(--bd-panel); border-radius:10px; padding:2px; cursor:pointer; }
+.tt-bd-tray small { color:var(--bd-warn); font-weight:600; font-size:12px; flex:none; }
+.tt-bd-chip { flex:none; border:2px solid transparent; background:var(--bd-panel); border-radius:10px; padding:1px; cursor:pointer; }
 .tt-bd-chip.sel { border-color:var(--bd-warn); background:#274a86; }
-.tt-bd-chip canvas { display:block; width:40px; height:40px; }
+.tt-bd-chip canvas { display:block; width:34px; height:34px; }
+
+/* the reef gives up a little height while the rearranging bar / tray are showing, so everything below stays on screen */
+#ttPlay.tt-bd-on:has(.tt-bd-edit.on, .tt-bd-tray.on) .tt-bd-cv { width:min(100%, max(160px, calc((var(--tt-vh, 100vh) - 520px) * 4 / 3))); }
 
 /* --- shop: a card over the screen ------------------------------------------------- */
-.tt-bd-shopcard { background:#0e2a5a; color:var(--bd-ink); border:1px solid var(--bd-line); width:min(92vw, 420px); }
+.tt-bd-shopcard { background:#0a2a52; color:var(--bd-ink); width:min(92vw, 420px); }
 .tt-bd-shelf { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; width:100%; }
-.tt-bd-item { background:var(--bd-panel2); border:1px solid var(--bd-line); border-radius:12px; padding:6px; display:flex; flex-direction:column; align-items:center; gap:2px;
+.tt-bd-item { background:var(--bd-panel); border-radius:12px; padding:6px; display:flex; flex-direction:column; align-items:center; gap:2px;
   cursor:pointer; color:var(--bd-ink); font-size:13px; text-align:center; }
 .tt-bd-item canvas { width:56px; height:56px; }
 .tt-bd-pr { display:flex; align-items:center; gap:4px; font-weight:700; }
@@ -767,90 +781,78 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
 .tt-bd-item.no { opacity:.45; cursor:default; }
 .tt-bd-shopnote { font-size:12px; color:var(--bd-dim); text-align:center; }
 
-/* --- the page: reef-deep, not Quiz navy --------------------------------------------- */
+/* --- the page: reef-deep, not Quiz navy ---------------------------------------------- */
 #ttPlay.tt-bd-on { justify-content:flex-start; gap:8px; padding-top:6px; padding-bottom:10px; color:var(--bd-ink);
   background:linear-gradient(#081638, #0a1e48 60%, #0c2858); }
-#ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:min(100%, 210px); }   /* a caption/array is up: the reef steps back, the working gets the room */
 
-/* --- the Quiz elements, restyled (same questions, different look) -------------------- */
-#ttPlay.tt-bd-on .tt-question { font-size:34px; font-weight:700; color:var(--bd-ink); min-height:0; letter-spacing:1px;
-  background:var(--bd-panel); border:1px solid var(--bd-line); border-radius:14px; padding:6px 16px; margin:0; }
-#ttPlay.tt-bd-on .tt-inline-entry { background:#0a1e48; border:2px solid var(--bd-line); border-radius:10px; color:var(--bd-ink); }
-#ttPlay.tt-bd-on .tt-inline-entry.correct { border-color:var(--bd-ok); color:var(--bd-ok); }
-#ttPlay.tt-bd-on .tt-feedback { font-size:20px; min-height:26px; margin:0; color:var(--bd-pearl); }
+/* --- the Quiz elements, restyled (same questions; Quiz/Pop button language) ------------ */
+#ttPlay.tt-bd-on {
+  --bd-q: clamp(30px, min(9.5vw, 6vh), 52px);              /* portrait question size */
+  --bd-tile-h: clamp(44px, 7vh, 60px);
+  --bd-tile-min: 52px;
+}
+#ttPlay.tt-bd-on .tt-question { font-size:var(--bd-q); font-weight:700; color:#e8f4ff; min-height:0; letter-spacing:0; margin:0; max-width:100%; }
+/* the answer box: FIXED size, room for 3 digits — typing never grows it or shifts the equation */
+#ttPlay.tt-bd-on .tt-inline-entry { box-sizing:border-box; width:2.3em; min-width:2.3em; height:1.25em; padding:0; text-align:center; }
+/* the feedback row is always there (the drill hides it when empty) so "correct" appearing moves nothing */
+#ttPlay.tt-bd-on .tt-feedback, #ttPlay.tt-bd-on .tt-feedback:empty { display:block !important; font-size:20px; height:26px; min-height:26px; line-height:26px; margin:0; overflow:hidden; color:var(--bd-pearl); }
 #ttPlay.tt-bd-on .tt-fb-correct { color:var(--bd-ok); }
 #ttPlay.tt-bd-on .tt-fb-corrective { color:var(--bd-warn); }
-#ttPlay.tt-bd-on .tt-key, #ttPlay.tt-bd-on .tt-tile { background:var(--bd-panel); border:1px solid var(--bd-line); border-radius:12px; color:var(--bd-ink); }
-#ttPlay.tt-bd-on .tt-key:active, #ttPlay.tt-bd-on .tt-tile:active { background:var(--bd-panel2); }
-#ttPlay.tt-bd-on .tt-pad { margin-top:2px; grid-template-columns:repeat(3, minmax(64px, 84px)); }
-#ttPlay.tt-bd-on .tt-key { height:44px; }
-#ttPlay.tt-bd-on .tt-help { background:transparent; border:1px solid var(--bd-line); border-radius:16px; color:var(--bd-dim); padding:8px 18px; margin-top:0; }
-#ttPlay.tt-bd-on .tt-scaffold-replay { background:var(--bd-panel); color:var(--bd-ink); }
-#ttPlay.tt-bd-on .tt-scaffold-ok { background:var(--bd-ok); color:#052a1a; border-radius:12px; }
+/* buttons: Quiz's flat navy, no ring */
+#ttPlay.tt-bd-on .tt-key, #ttPlay.tt-bd-on .tt-tile { background:#0e3a6a; border:none; border-radius:7px; color:#d0eeff; font-weight:700; }
+#ttPlay.tt-bd-on .tt-key:active, #ttPlay.tt-bd-on .tt-tile:active { background:#2060b0; transform:scale(.94); }
+#ttPlay.tt-bd-on .tt-help { background:#0e3a6a; border:none; border-radius:7px; color:#d0eeff; padding:10px 20px; margin-top:0; }
+#ttPlay.tt-bd-on .tt-scaffold-replay { background:#0e3a6a; color:#d0eeff; }
+#ttPlay.tt-bd-on .tt-scaffold-ok { background:var(--bd-ok); color:#052a1a; border-radius:7px; }
 
-/* h22 (Kath): portrait — the reef dock leaves a short phone almost no room, so while a scaffold is up it takes the
-   tiles'/keypad's space instead of being squeezed to nothing (measured 375x667: slot collapsed to its padding).
-   OK (or the next question) brings the input back; typing from a keyboard still works meanwhile. */
+/* tiles: equal-sized, bounded by the column, never wider than it (2 lines when there are many) */
+#ttPlay.tt-bd-on .tt-input { width:100%; min-width:0; }
+#ttPlay.tt-bd-on .tt-tiles { display:flex; flex-flow:row wrap; justify-content:center; align-content:flex-start; gap:8px; width:100%; height:auto; }
+#ttPlay.tt-bd-on .tt-tiles .tt-tile { flex:0 0 calc((100% - 40px) / 6); max-width:92px;   /* sized as if 6 to a row: 4 tiles are the same size as 6, centred */
+   min-width:0; height:var(--bd-tile-h); padding:0; font-size:clamp(18px, min(3.6vh, 6vw), 28px); }
+#ttPlay.tt-bd-on .tt-tiles.tt-tiles-many { display:grid; grid-auto-flow:row; grid-template-rows:none; grid-auto-columns:auto;
+  grid-template-columns:repeat(var(--tt-tile-half, 6), minmax(0, 1fr)); max-width:calc(var(--tt-tile-half, 6) * 88px); margin:0 auto; gap:8px; }
+#ttPlay.tt-bd-on .tt-tiles.tt-tiles-many .tt-tile { max-width:none; font-size:clamp(15px, min(3.4vh, 4.6vw), 24px); }
+/* keypad: a 3-wide pad that scales with the window */
+#ttPlay.tt-bd-on .tt-keypad { display:flex; flex-direction:column; align-items:center; height:auto; justify-content:flex-start; }
+#ttPlay.tt-bd-on .tt-pad { margin-top:0; grid-template-columns:repeat(3, clamp(60px, 9vw, 104px)); gap:clamp(5px, .9vh, 10px); }
+#ttPlay.tt-bd-on .tt-key { height:clamp(38px, 7.4vh, 64px); font-size:clamp(20px, 3.4vh, 30px); }
+
+/* portrait: while a scaffold is up it takes the tiles'/keypad's space (a short phone leaves the dock almost
+   no room otherwise); OK or the next question brings the input back; the keyboard still types meanwhile */
 @media (orientation:portrait) {
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input { display:none; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:min(100%, 210px); }
 }
-@media (orientation:portrait) and (max-height:740px) {   /* short phone: the reef steps back further while the working is up */
+@media (orientation:portrait) and (max-height:740px) {
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:min(100%, 130px); }
 }
 
-/* --- landscape (phone landscape + touch tablets: same query as the other games) -------- */
-/* h22 (Kath): ALSO any wide landscape window (desktop browser) — the 480px portrait column wasted the screen. */
-@media (orientation:landscape) and (max-height:600px), (orientation:landscape) and (pointer:coarse), (orientation:landscape) and (min-width:700px) {
+/* --- LANDSCAPE (every size, phone to PC): dock left; question / buttons / help stacked right ---- */
+@media (orientation:landscape) {
   #app:has(#ttPlay.tt-bd-on) { max-width:none; padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
-  #ttPlay.tt-bd-on { display:grid; align-items:center; justify-items:center; gap:6px 12px; padding:6px 10px 6px 12px;
-    height:var(--tt-vh, 100vh); min-height:0; overflow:hidden;
-    grid-template-columns:auto minmax(0,1fr) auto; grid-template-rows:auto auto minmax(0,1fr) auto;
-    grid-template-areas:"dock question input" "dock feedback input" "dock array input" "dock array help"; }
-  #ttPlay.tt-bd-on .tt-bd-dock { grid-area:dock; align-self:start; width:min(40vw, calc((var(--tt-vh, 100vh) - 76px) * 4 / 3)); }
-  #ttPlay.tt-bd-on .tt-bd-cv { width:100%; }
-  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { width:100%; }
-  #ttPlay.tt-bd-on .tt-question { grid-area:question; font-size:26px; padding:4px 10px; }
-  #ttPlay.tt-bd-on .tt-feedback { grid-area:feedback; text-align:center; }
-  #ttPlay.tt-bd-on .tt-scaffold-slot { grid-area:array; align-self:stretch; height:100%; width:100%; overflow:hidden; max-height:none; }
-  #ttPlay.tt-bd-on .tt-help { grid-area:help; }
-  #ttPlay.tt-bd-on .tt-input { grid-area:input; width:auto; height:100%; }
-  #ttPlay.tt-bd-on .tt-tiles { flex-flow:column wrap; width:auto; height:100%; justify-content:space-between; align-content:center; gap:6px; }
-  #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many { display:grid; grid-auto-flow:column; grid-template-columns:none;
-    grid-template-rows:repeat(var(--tt-tile-half, 6), minmax(0, 1fr)); width:auto; height:100%; gap:6px 8px; }
-  #ttPlay.tt-bd-on .tt-keypad { justify-content:center; height:100%; }
-  #ttPlay.tt-bd-on .tt-pad { grid-template-columns:repeat(3, 56px); gap:5px; }
-  #ttPlay.tt-bd-on .tt-key { height:42px; }
-  .tt-bd-shelf { grid-template-columns:repeat(3,1fr); }
-}
-/* h22 (Kath, PC browser): tall + wide = the answer is quick to give. Right-hand column reads TOP TO BOTTOM:
-   big question with a big answer box, the tiles/keypad directly under it, then (when up) the scaffold, then
-   help. The scaffold has its OK; pressing it clears the way back to the input. */
-@media (orientation:landscape) and (min-width:700px) and (min-height:601px) {
-  #ttPlay.tt-bd-on { gap:10px 28px; padding:10px 28px 14px 12px; align-items:start; justify-items:center;
+  #ttPlay.tt-bd-on {
+    --bd-q: clamp(24px, min(4.4vw, 11vh), 76px);
+    --bd-tile-h: clamp(40px, 9.5vh, 68px);
+    --bd-tile-min: clamp(46px, 6vw, 84px);
+    display:grid; align-items:start; justify-items:center; gap:clamp(6px, 1.4vh, 12px) clamp(10px, 2.4vw, 28px);
+    padding:6px clamp(10px, 2vw, 28px) 8px 10px; height:var(--tt-vh, 100vh); min-height:0; overflow:hidden;
     grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto auto minmax(0,1fr);
     grid-template-areas:"dock question" "dock input" "dock help" "dock feedback" "dock array"; }
-  #ttPlay.tt-bd-on .tt-bd-dock { grid-row:1 / -1; width:min(50vw, calc((var(--tt-vh, 100vh) - 90px) * 4 / 3)); }
-  #ttPlay.tt-bd-on .tt-question { font-size:clamp(44px, 5vw, 76px); padding:10px clamp(18px, 2.4vw, 40px); border-radius:20px; margin-top:6px; }
-  #ttPlay.tt-bd-on .tt-inline-entry { border-width:4px; border-radius:20px; min-width:1.7em; }
-  #ttPlay.tt-bd-on .tt-feedback { font-size:24px; min-height:0; }
-  #ttPlay.tt-bd-on .tt-input { grid-area:input; width:100%; height:auto; align-self:start; }
-  /* tiles: rows under the question, not a column */
-  #ttPlay.tt-bd-on .tt-tiles { flex-flow:row wrap; width:100%; height:auto; justify-content:center; align-content:flex-start; gap:12px; }
-  #ttPlay.tt-bd-on .tt-tiles .tt-tile { min-width:84px; height:68px; font-size:28px; padding:0 14px; }
-  #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many { display:grid; grid-auto-flow:row; grid-template-rows:none; grid-auto-columns:auto;
-    grid-template-columns:repeat(var(--tt-tile-half, 6), minmax(0, 1fr)); width:100%; max-width:760px; height:auto; gap:12px; }
-  #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many .tt-tile { min-width:0; padding:0; font-size:26px; }
-  /* keypad: bigger keys */
-  #ttPlay.tt-bd-on .tt-keypad { height:auto; justify-content:flex-start; }
-  #ttPlay.tt-bd-on .tt-pad { grid-template-columns:repeat(3, 104px); gap:10px; margin-top:0; }
-  #ttPlay.tt-bd-on .tt-key { height:68px; font-size:30px; }
-  #ttPlay.tt-bd-on .tt-scaffold-ok { padding:12px 44px; font-size:22px; }
-  /* h22 (Kath): while a scaffold is up it takes the room the tiles/keypad had (the dots would otherwise be tiny
-     in the leftover space). The input is hidden — typing still works from the keyboard — and OK brings it back. */
+  #ttPlay.tt-bd-on .tt-bd-dock { grid-row:1 / -1; align-self:start; width:min(46vw, calc((var(--tt-vh, 100vh) - 74px) * 4 / 3)); }
+  #ttPlay.tt-bd-on .tt-bd-cv { width:100%; }
+  #ttPlay.tt-bd-on:has(.tt-bd-edit.on, .tt-bd-tray.on) .tt-bd-dock { width:min(46vw, calc((var(--tt-vh, 100vh) - 74px - 84px) * 4 / 3)); }
+  #ttPlay.tt-bd-on .tt-question { grid-area:question; padding:0; margin-top:4px; }
+  #ttPlay.tt-bd-on .tt-input { grid-area:input; align-self:start; }
+  #ttPlay.tt-bd-on .tt-help { grid-area:help; }
+  #ttPlay.tt-bd-on .tt-feedback, #ttPlay.tt-bd-on .tt-feedback:empty { grid-area:feedback; text-align:center; }
+  #ttPlay.tt-bd-on .tt-scaffold-slot { grid-area:array; align-self:stretch; justify-self:stretch; height:100%; width:100%; max-height:none; overflow:hidden; }
+  /* the scaffold takes the buttons' place; OK (inside it) gives them back */
   #ttPlay.tt-bd-on:has(.tt-scaffold) { grid-template-rows:auto minmax(0,1fr) auto;
     grid-template-areas:"dock question" "dock scaf" "dock help"; }
-  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback { display:none; }
-  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-scaffold-slot { grid-area:scaf; align-self:stretch; justify-self:stretch; height:100%; width:100%; max-height:none; overflow:hidden; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback:empty { display:none !important; }
+  #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-scaffold-slot { grid-area:scaf; }
+  #ttPlay.tt-bd-on .tt-scaffold-ok { padding:clamp(8px,1.6vh,12px) clamp(26px,3vw,44px); font-size:clamp(17px, 2.6vh, 22px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .tt-bd-pips i.pop { animation:none; }
@@ -895,7 +897,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     <button id="ttSettingsDone" class="tt-choice" type="button">Games</button>
     <button id="ttAdultLink" class="tt-subtle" type="button">adult settings</button>
     <!-- h20 (Kath): which build is loaded — quote it with device reports. Filled by build.sh. -->
-    <div class="tt-build-stamp">build 8162cb · 2026-10-16 17:02</div>
+    <div class="tt-build-stamp">build ad6751 · 2026-10-17 15:39</div>
   </section>
 
   <section id="ttAdult" class="tt-screen" style="display:none">
