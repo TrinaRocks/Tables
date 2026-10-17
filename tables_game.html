@@ -843,6 +843,16 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-bd-cv { height:min(calc(var(--bd-w, 100vw) * .36), 130px); }
 }
 
+/* Help me out is not needed while an L1/L2 ARRAY is playing (the array has its own replay): hide it so the scaffold + OK get the room.
+   ("Show me why" — shown for the L3 caption — is a different button and stays.) Touch: no double-tap delay on any control. */
+#ttPlay.tt-bd-on:has(.tt-scaffold-replay) .tt-help:not(.tt-why) { display:none; }
+#ttPlay.tt-bd-on button { touch-action:manipulation; }
+#ttPlay.tt-bd-on .tt-help { position:relative; z-index:3; }
+/* a bigger OK, and the room reserved for it follows its size */
+#ttPlay.tt-bd-on { --bd-ok-h:clamp(46px, 11vh, 60px); }
+#ttPlay.tt-bd-on .tt-scaffold-slot:has(.tt-scaffold-ok) { padding-bottom:calc(var(--bd-ok-h) + 14px); }
+#ttPlay.tt-bd-on .tt-scaffold-ok { height:var(--bd-ok-h); padding:0 clamp(36px, 6vw, 64px); font-size:clamp(20px, 3.4vh, 28px); display:flex; align-items:center; justify-content:center; }
+
 /* --- LANDSCAPE (every size, phone to PC): dock left; question / buttons / help stacked right ---- */
 @media (orientation:landscape) {
   #app:has(#ttPlay.tt-bd-on) { max-width:none; padding:0 env(safe-area-inset-right) 0 env(safe-area-inset-left); }
@@ -878,7 +888,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-input, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback, #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-feedback:empty { display:none !important; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-scaffold-slot { grid-row:2; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-help { grid-row:3; }
-  #ttPlay.tt-bd-on .tt-scaffold-ok { padding:clamp(8px,1.6vh,12px) clamp(26px,3vw,44px); font-size:clamp(17px, 2.6vh, 22px); }
+  #ttPlay.tt-bd-on:has(.tt-scaffold-replay) .tt-question { font-size:clamp(20px, min(calc(var(--bd-col) / 12), 7.5vh), 44px); margin-top:4px; }
 }
 /* VERY SHORT landscape (Kath h22, iPhone 12 mini in Safari with the tab bar open ≈ 812×250): the right column
    (question + 4-row keypad + Help) needs ~260px and there is ~235 — the question ended up under keys 1–3.
@@ -887,6 +897,10 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   #ttPlay.tt-bd-on .tt-pad { grid-template-columns:repeat(6, minmax(0, 1fr)); width:100%; max-width:384px; gap:5px; }   /* fills the column, never wider than it */
   #ttPlay.tt-bd-on .tt-key { height:clamp(30px, 13vh, 40px); font-size:clamp(16px, 6vh, 22px); }
   #ttPlay.tt-bd-on { --bd-tile-h:clamp(32px, 11vh, 40px); }
+  /* 2 x 6 keypad: 1-6 on top; bottom row = back key at the LEFT corner, OK at the RIGHT corner (symmetry): ⌫ 7 8 9 0 OK */
+  #ttPlay.tt-bd-on .tt-key-clear { order:1; }
+  #ttPlay.tt-bd-on .tt-key-7, #ttPlay.tt-bd-on .tt-key-8, #ttPlay.tt-bd-on .tt-key-9, #ttPlay.tt-bd-on .tt-key-0 { order:2; }
+  #ttPlay.tt-bd-on .tt-key-enter { order:3; }
   #ttPlay.tt-bd-on .tt-help { padding:6px 16px; font-size:14px; }
   #ttPlay.tt-bd-on { gap:4px clamp(10px, 2.4vw, 28px); }
   #ttPlay.tt-bd-on .tt-tiles { gap:5px; }
@@ -935,7 +949,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     <button id="ttSettingsDone" class="tt-choice" type="button">Games</button>
     <button id="ttAdultLink" class="tt-subtle" type="button">adult settings</button>
     <!-- h20 (Kath): which build is loaded — quote it with device reports. Filled by build.sh. -->
-    <div class="tt-build-stamp">build fad9ca · 2026-10-17 18:34</div>
+    <div class="tt-build-stamp">build d1e1ef · 2026-10-17 18:47</div>
   </section>
 
   <section id="ttAdult" class="tt-screen" style="display:none">
