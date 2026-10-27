@@ -155,7 +155,7 @@
        HORIZONTAL row spanning the FULL WIDTH beneath it.
      • LANDSCAPE (short axis = height): grid — array + question on the left,
        tiles as a VERTICAL column filling the FULL HEIGHT on the right.
-   The array scales to its slot via the JS fit-helper (ttFitScaffold, tt_panels)
+   The array scales to its slot via the JS fit-helper (ttMountScaffold.fit(), tt_panels)
    so a tall fact never overflows; the tiles own the short axis either way.
    --------------------------------------------------------------------------- */
 .tt-play { display:flex; flex-direction:column; align-items:center; justify-content:center;
@@ -172,7 +172,7 @@
 .tt-play:has(.tt-scaffold) .tt-feedback:empty { display:none; }   /* not just 0px: an empty item still costs a flex/grid gap */
 /* PORTRAIT: cap the array at ~60% of the height so the horizontal tile row stays
    on-screen (no scroll to reach the answers). Small arrays are under the cap and
-   untouched; a big fact (e.g. 8×7) is scaled to fit by ttFitScaffold. */
+   untouched; a big fact (e.g. 8×7) is scaled to fit by ttMountScaffold.fit(). */
 .tt-play .tt-scaffold-slot { display:flex; justify-content:center; min-height:0; min-width:0;
   max-height:calc(var(--tt-vh, 100vh) * .52); overflow:hidden; }
 /* PORTRAIT: tiles horizontal, full width under the array. NB the input MOUNT is
@@ -206,7 +206,7 @@
     grid-template-areas:"question input" "feedback input" "array input" "array help"; }
   .tt-play:has(.tt-scaffold) .tt-question, .tt-play:has(.tt-keypad) .tt-question { grid-area:question; margin:0; }
   .tt-play:has(.tt-scaffold) .tt-feedback, .tt-play:has(.tt-keypad) .tt-feedback { grid-area:feedback; text-align:center; }
-  /* array cell has a DEFINITE height (minmax(0,1fr)); ttFitScaffold scales the
+  /* array cell has a DEFINITE height (minmax(0,1fr)); ttMountScaffold.fit() scales the
      card to fit and overflow:hidden clips the untransformed footprint so the
      grid row never grows to the card's natural size. */
   .tt-play:has(.tt-scaffold) .tt-scaffold-slot, .tt-play:has(.tt-keypad) .tt-scaffold-slot {
@@ -309,9 +309,9 @@
    The slot stacks note over card; the card stays centred and top-anchored. */
 .tt-drill .tt-scaffold-slot:has(.tt-scaffold-note) { flex-direction:column; align-items:center; justify-content:flex-start; row-gap:4px; }
 .tt-drill .tt-scaffold-slot:has(.tt-scaffold-note) > .tt-scaffold { align-self:center; }
-/* h22 (Kath): OK under every scaffold — same colour/squareness as the keypad tiles, a full finger target */
+/* h21 (Kath): OK under every scaffold — same colour/squareness as the keypad tiles, a full finger target */
 /* ABSOLUTE at the slot's foot, in padding reserved for it: the card is scaled by transform, which leaves its
-   layout box at full size, so an in-flow OK would be pushed out of the slot and clipped (measured h22). */
+   layout box at full size, so an in-flow OK would be pushed out of the slot and clipped (measured h21). */
 .tt-drill .tt-scaffold-slot:has(.tt-scaffold-ok) { position:relative; padding-bottom:64px; }
 .tt-drill .tt-scaffold-ok { position:absolute; bottom:6px; /* top is set by fit() to sit under the card */ left:50%; transform:translateX(-50%); border:none; border-radius:7px; padding:10px 34px; font-size:20px; font-weight:700; font-family:inherit;
   background:#0e3a6a; color:#d0eeff; cursor:pointer; }
@@ -454,11 +454,12 @@
      landscape board (measured h13: 6 rows of ~45px, two lines of 26px). */
   font-weight:700; font-size:clamp(10px, min(4.2vw, 4.6vh), 24px); line-height:1.05; padding:2px;
   min-width:0; min-height:0; overflow:hidden; overflow-wrap:break-word; cursor:pointer;
-  transition:opacity .35s ease, transform .35s ease, background .15s, border-color .15s; }
+  transition:opacity .2s ease, transform .2s ease, background .15s, border-color .15s; }   /* h22: fade .35s → .2s (Kath) */
 .tt-pairs .tt-pairs-q { color:#d0eeff; }
 .tt-pairs .tt-pairs-a { color:#40ffcc; }            /* answers read as a distinct class of card */
 .tt-pairs .tt-pairs-card.sel { background:#2060b0; border-color:#00b8d4; transform:scale(1.05); }
 .tt-pairs .tt-pairs-card.wrong { background:#5a2430; border-color:#ffb347; }
+.tt-pairs .tt-pairs-card.right { background:#1f5a34; border-color:#5ee08a; }   /* h22 (Kath): match = green, the counterpart of .wrong */
 .tt-pairs .tt-pairs-card.matched { opacity:0; transform:scale(.5); pointer-events:none; }
 
 /* Completion sits BELOW the board — never over the photo. */
@@ -711,16 +712,16 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
    sits above the ordinary Quiz play elements, which are RESTYLED here (same questions, family look).
    Every rule is scoped under #ttPlay.tt-bd-on (set by the builder player) so Quiz itself is untouched.
 
-   FAMILY LOOK (Kath h22): buttons, keys, tiles, pills and Help me out take the Quiz/Pop button language —
+   FAMILY LOOK (Kath h21): buttons, keys, tiles, pills and Help me out take the Quiz/Pop button language —
    flat navy #0e3a6a, no outline ring, small radius, #d0eeff bold text. The question is plain text, the answer
    box is Quiz's. What stays Reef: the dock, the reef-deep page, the pearl/pips row, the green OK.
 
-   FITTING (Kath h22, "match Pop, not Quiz"): sizes come from the window — clamp()s on vw/vh, as Pop does for its
+   FITTING (Kath h21, "match Pop, not Quiz"): sizes come from the window — clamp()s on vw/vh, as Pop does for its
    question — instead of Quiz's content-sized grid, so nothing depends on how many tiles a question has.
    Landscape (any): dock LEFT; question, tiles/keypad, Help me out stacked on the RIGHT. A scaffold takes the
    tiles'/keypad's place (OK brings them back). Portrait: dock on top, the same stack beneath.
 
-   STATIC (Kath h22): things must not move as the child works. The answer box has a FIXED size (room for 3 digits —
+   STATIC (Kath h21): things must not move as the child works. The answer box has a FIXED size (room for 3 digits —
    it does not grow when typing starts) and the feedback line always reserves its row.
    ============================================================================ */
 
@@ -869,7 +870,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
      landscape placement (named areas, which Quiz uses on touch devices) is overridden property by property —
      so nothing here depends on how a browser resolves two competing templates. */
   #ttPlay.tt-bd-on > * { grid-area:auto; }
-  /* EDGE TO EDGE (Kath h22): the picture runs from the screen's left/top/bottom edges with no frame; the header floats on it;
+  /* EDGE TO EDGE (Kath h21): the picture runs from the screen's left/top/bottom edges with no frame; the header floats on it;
      the rearranging bar / table line / tray float over its foot. The dock column is never narrower than the header (~330px). */
   #ttPlay.tt-bd-on { position:relative; --bd-dockw:max(330px, min(52vw, calc(var(--tt-vh, 100vh) * 4 / 3))); padding-left:0; padding-top:0; padding-bottom:0;
     grid-template-columns:var(--bd-dockw) minmax(0,1fr); }
@@ -890,7 +891,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   #ttPlay.tt-bd-on:has(.tt-scaffold) .tt-help { grid-row:3; }
   #ttPlay.tt-bd-on:has(.tt-scaffold-replay) .tt-question { font-size:clamp(20px, min(calc(var(--bd-col) / 12), 7.5vh), 44px); margin-top:4px; }
 }
-/* VERY SHORT landscape (Kath h22, iPhone 12 mini in Safari with the tab bar open ≈ 812×250): the right column
+/* VERY SHORT landscape (Kath h21, iPhone 12 mini in Safari with the tab bar open ≈ 812×250): the right column
    (question + 4-row keypad + Help) needs ~260px and there is ~235 — the question ended up under keys 1–3.
    Here the keypad becomes TWO rows of six (1–6 / 7 8 9 ⌫ 0 OK), keys are shorter, Help me out is slimmer. */
 @media (orientation:landscape) and (max-height:340px) {
@@ -949,7 +950,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     <button id="ttSettingsDone" class="tt-choice" type="button">Games</button>
     <button id="ttAdultLink" class="tt-subtle" type="button">adult settings</button>
     <!-- h20 (Kath): which build is loaded — quote it with device reports. Filled by build.sh. -->
-    <div class="tt-build-stamp">build d1e1ef · 2026-10-17 18:47</div>
+    <div class="tt-build-stamp">build 4bfbd5 · 2026-10-26 17:38</div>
   </section>
 
   <section id="ttAdult" class="tt-screen" style="display:none">
@@ -965,6 +966,11 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
       <label><input type="radio" name="scope" value="game" checked> The game chooses (recommended)</label>
       <label><input type="radio" name="scope" value="adult"> I choose</label>
       <label><input type="radio" name="scope" value="child"> Let the child choose</label>
+    </div>
+    <div class="tt-field">
+      <div class="tt-label">Pairs: who chooses the question style?</div>
+      <label><input type="radio" name="pairsStyle" value="child" checked> The child chooses (×, missing number or ÷)</label>
+      <label><input type="radio" name="pairsStyle" value="game"> The game chooses (each card at the child's level)</label>
     </div>
     <div id="ttAdultTables" class="tt-field" style="display:none">
       <div class="tt-label">Which tables?</div>
@@ -1080,7 +1086,41 @@ var TT_C = {
   RETENTION_CURVE_DAYS: [1, 1, 1, 2, 2, 3, 5, 7, 10, 14, 21, 30, 45, 60],
   SETPOINT: 0.80,             // success band target (guess, not law — PRINCIPLES §2.3)
   BAND_TOL: 0.10,             // band half-width before rung-adjust kicks in
-  WIP_CAP_DEFAULT: 5,         // BASE new facts in flight (h-user: 3 felt too narrow in play)
+  // h24 (Kath): NESTED accuracy levels — better performance unlocks the next challenge up. Plain thresholds
+  // on rolling accuracy: < setpoint − BAND_TOL (70%) → easier rung (tt_buildAsk); ≥ setpoint − INTRO_BAND_MARGIN
+  // (75%) → new facts/checks while base WIP has room (tt_introAllowed); ≥ setpoint + BORED_BAND_MARGIN (90%,
+  // plus the challenge index) → bored valve: extra WIP beyond base + shorter intro gap (tt_effectiveWip).
+  // Kath h24: 85→90% — WIP extended by the valve doesn't shrink back (its facts stay until they confirm R3),
+  // so extra WIP needs a child who is clearly strong.
+  INTRO_BAND_MARGIN: 0.05,
+  BORED_BAND_MARGIN: 0.10,
+  WIP_CAP_DEFAULT: 6,         // BASE facts in WIP (h-user: 3 felt too narrow in play; h24 Kath: 5→6 because WIP now
+                              // holds a fact to confirmed R3, so it must be bigger for the same inflow)
+  RETENTION_FROM_RUNG: 8,     // h24 (Kath): day-based due-ness weighs a fact only from this CONFIRMED rung (tt_weight)
+  // h24 (Kath): below that rung, a LAGGARD boost — the question-count twin of the overdue boost, so a learning fact
+  // can't trail by sheer chance: ×1 at LAGGARD_START_Q questions unasked, rising linearly to ×LAGGARD_MAX at _FULL_Q.
+  LAGGARD_START_Q: 100, LAGGARD_FULL_Q: 250, LAGGARD_MAX: 4,
+  // h24 (Kath): WIP facts are the ones focused on most — their curve starts much earlier (×1 at 20 → ×4 at 50),
+  // since a growing pool of acquiring/climbing facts otherwise thins each WIP fact's share (gaps of 100–260 seen).
+  LAGGARD_WIP_START_Q: 20, LAGGARD_WIP_FULL_Q: 50,
+  WIP_EXIT_RUNG: 3,           // h24 (brief §7): a fact leaves WIP at confirmed R3 (was R2 — still far from recall)
+  // h24 (brief §7, Kath): selection weight per phase — WIP > acquiring > review. A dial, not a share:
+  // measure the share of asks in tt_shell.html. "unchecked"/"unseen" are never in the pool.
+  PHASE_WEIGHT: { wip: 6, acquiring: 3, consolidating: 1.5, mastered: 0.5,
+                  climbing: 3 },   // h24 (Kath): ÷ open and still below confirmed R8 — still acquiring (R5–R8 forms), not resting
+  // h24 round 2 (Kath): a player's FIRST session fills WIP fast — an intro every 2nd question (each new fact
+  // gets one ask before the next) until WIP (base cap) is first full; meanwhile 1 intro slot in FILL_CHECK_EVERY
+  // is a check (Kath h24: 3 → 2 — the weak child needs the confidence of early R3 checks).
+  // No bridge in the first session (confusing for a child finding their feet) — tt_firstSession.
+  FIRST_SESSION_INTRO_GAP: 2,
+  FILL_CHECK_EVERY: 2,
+  // h24 (Kath): a check at or below this rung ("might or might not know" — placement put the child's
+  // true level there) takes EVERY intro slot until none are left; only then do new facts come in.
+  LOW_CHECK_MAX_RUNG: 3,
+  // h24 (Kath): with WIP EXACTLY full, an R6 check of a strong seed may still be served, at most one per this many
+  // questions since the last intro/check — a pass never enters WIP; a fail joins it ABOVE the cap, which then
+  // blocks everything until it drains. Never while WIP is over the cap ("a slow child is easily overwhelmed").
+  FULL_WIP_CHECK_GAP: 6,
   // bored release valve (h-user v2): challenge index, not streak — single lapses
   // are mistypes, not struggle; proficient children run at ~90%. Per-answer score
   // (h-user formula): accuracy(0/1) × speed(0.5–1.5 vs rung fast-bar) ×
@@ -1092,6 +1132,7 @@ var TT_C = {
   CHALLENGE_FLOOR: 40,        // below this index: no bonus at all
   SPEED_SCORE_MIN: 0.5, SPEED_SCORE_MAX: 1.5,
   WIP_BONUS_MAX: 10,          // effective WIP ≤ base + this
+  WIP_GROW_GAP_Q: 10,         // h24 (Kath): the valve grows WIP +1 at a time, ≥ this many questions apart (eng.wipBonus)
   BORED_INTRO_GAP: 2,         // intro spacing while escalated (else INTRO_MIN_GAP_Q)
   LAPSE_STEPBACK: 2,          // curvePtr on single lapse
   SAME_FACT_GAP: 6,           // questions (error re-asks exempt)
@@ -1103,13 +1144,20 @@ var TT_C = {
   INTRO_MIN_GAP_Q: 4,         // min questions between introductions
   ATTEMPTS_CAP: 20,           // rolling per-fact log
   ROLLING_WINDOW: 20,         // child rolling accuracy (non-ceremonial)
+  ROLLING_MIN_ANSWERS: 10,    // rolling accuracy is null (= healthy for intros, shut for the bored valve) below this
+                              // many answers (h24 Kath: 5 → 10 — the band read 100% after 5 answers)
+  WIP_ROLLING_WINDOW: 20,     // h24 (Kath): the SECOND accuracy figure — answers on facts IN WIP when asked
+  WARM_MIN_CONFIRMED: 2,      // session warm-up asks only facts confirmed ≥ this …
+  WARM_MIN_ACC: 0.7,          // … and not recently below this accuracy (null = seeded-known → allowed)
   PROBE_MAX_MISSES: 2,        // placement stop rule
   // rung trial machine (h-user): clean fast+correct hits needed at a rung to
   // confirm+promote, and rebuild questions required after an error before the
   // next rung may be trialled. Indexed by rung; harder rungs cost more.
   // h18 (Kath): missing number is an important skill — R4 (? tiles) 2→3, R7 (typed ?) 3→5
   // (plus the both-factors gate, tt_bothMissing).
-  PROMOTE_HITS:          [1, 2, 2, 2, 3, 3, 3, 5, 3],
+  // h24 (Kath): R2 and R3 2 → 3 — rungs were confirmed in too few asks. "Consecutive": only a WRONG answer (at any
+  // rung) resets the count; a right answer at a lower rung neither adds nor resets. The count carries across sessions.
+  PROMOTE_HITS:          [1, 2, 3, 3, 3, 3, 3, 5, 3],
   REINFORCE_AFTER_ERROR: [0, 2, 2, 2, 3, 3, 3, 3, 3],
   MASTERED_MIN_PTR: 2,        // "mastered" phase also needs retention (honesty gate)
   CONSOLIDATING_MIN_RUNG: 4,  // below this, still product-from-tiles (recognition) = acquiring,
@@ -1158,7 +1206,13 @@ var TT_C = {
   // so an ace child isn't marched through 5 stages every fact. Counts clean+fast passes;
   // a ÷ lapse walks it back (ceremony returns if division is actually shaky).
   BRIDGE_FADE_TO_3: 2,         // clean full-gate passes before the short (3-stage) gate
-  BRIDGE_FADE_TO_AUTO: 4,      // clean passes before auto-open (no battery; ÷ still proven on the R5/R8 climb)
+  // h24 (Kath): auto-open RETIRED — the gate fades 5 → 3 stages only; a child who can probably divide gets the
+  // one-question PRECURSOR instead (tt_precursorAllowed / tt_servePrecursor): right → bridge open, wrong → battery.
+  PRECURSOR_CLEAN_EVER: 5,     // precursor gate: ≥ this many clean bridges ever …
+  PRECURSOR_GROUP: 2,          // … or the last NEW fact introduced is in this group (index 2 = group 3: 6,9,7,12) …
+  DIV_RECENT_N: 5, DIV_RECENT_MIN: 4,   // … or ≥ MIN of the last N ÷ answers right (Kath: 4 or 5 of 5) … (or a placement ÷ probe passed)
+  FULL_BATTERY_SESSION_CAP: 2, // ≤ this many FULL (5-stage) batteries per session (tedious); precursors/short gates free
+  PRECURSOR_FACT_GAP: 2,       // a precursor waits ≥ this many questions since its fact was last asked (not twice in a row)
   // --- anomaly gate (little-sibling quarantine, SPEC §5; tables_anomaly_design.md) ------
   // A whole SESSION (a game entry) reads grossly below profile → a weaker child
   // grabbed the tablet. Detect retrospectively at the next entry, DON'T fold it into the
@@ -1372,6 +1426,7 @@ function tt_newEngine(config) {
       wipCap: config.wipCap || TT_C.WIP_CAP_DEFAULT,
       setpoint: config.setpoint || TT_C.SETPOINT,
       bridgeCleanPasses: 0,    // adaptive-fade counter: clean+fast gate passes (§6)
+      bridgeCleanEver: 0,      // h24: clean bridges ever (never walked back) — a precursor-gate signal
     },
     facts: {},                 // key -> fact record (SPEC §2) — the facts IN RANGE
     dormantFacts: {},          // h19: facts outside the range (12 → 10), hidden not deleted — tt_setRange
@@ -1383,8 +1438,17 @@ function tt_newEngine(config) {
     compWindow: [],            // rolling per-answer challenge scores — release valve input
     score: 0,                  // effort gauge: +1 per correct, ceremonial INCLUDED (HOOKS §3)
     rolling: [],               // last N non-ceremonial {correct} for band tracking
+    rollingWip: [],            // h24: the same, for answers on facts IN WIP only (bored valve needs this high too)
     recentServed: [],          // [{key, product, q}] for constraint layer
     lastIntroQ: -999,
+    lastIntroGroup: -1,        // h24: group of the last NEW fact introduced (a precursor-gate signal)
+    placementFrontier: null,   // h24: group where the last Quiz/Pop placement stopped (orders R4/R6 checks)
+    divRecent: [],             // h24: last DIV_RECENT_N ÷ answers (ordinary, battery ÷ stages, precursors)
+    placementDivPassed: false, // h24: a placement ÷ probe was answered right (a precursor-gate signal)
+    wipBonus: 0, wipGrowQ: -999,   // h24: the bored valve's extra WIP, grown +1 at a time (tt_updateWipBonus)
+    workingGroup: 0,           // h24 (Kath): the group the child works in — starts at the placement frontier, then
+                               // becomes the group of each new fact introduced / R1–R3 check (R1/R2 tile table)
+    wipCapH24: true,         // h24: the 5→6 cap move (tt_deserialize) has nothing to do for a new player
     lastAnswerTs: 0,
     pendingReveal: null,       // factKey -> next question is the reveal (§7 step 1)
     reaskQueue: [],            // [{key, dueAtQ, stage}] §7 step 3
@@ -1445,15 +1509,18 @@ function tt_newFact(a, b, introIdx) {
     // bridge (× → ÷), SPEC §6 — gates the division rungs (R5/R8) on the linear
     // climb. bridge: unbridged | pending | open.
     bridge: "unbridged", lastBridgeFailStage: null,
-    bridgeNeedReconfirm: false,  // early-fail: no re-bridge until a product rung re-confirms
+    bridgeNeedReconfirm: false,  // early-fail: no re-bridge until × is proven again — the working rung re-confirmed (h24)
+    reconfirmHits: 0,            // h24: correct ×/missing-number answers at the working rung since that early fail
     bridgeLastFailQ: -999,       // qCount of the last battery fail (fail cooldown; ≤1 middle-fail retrigger per cooldown)
-    bridgeDivFlip: false,        // coin-flip alternation for the battery's ÷ stage divisor
+    precursorFailed: false,      // h24: this fact missed its bridge precursor → its next bridge is the battery
     masteredEmitted: false,      // FACT_MASTERED fired once on the phase transition
     attempts: [], wrongStreak: 0,
     rungHits: 0,            // clean fast+correct at working rung since entry/last error
     reinforceLeft: 0,      // post-error rebuild questions before next rung may be trialled
     rungProvisional: false,// working rung seen once, not yet confirmed
     fluentRung: 0,         // T13: highest rung shown FLUENT (≤ fast-bar); ≤ confirmedRung; gates mastery
+    unchecked: false,      // h24 (brief §7): placement-SEEDED, its check not yet answered → not askable; the check
+                           //   rides an intro opportunity. Absent on old saves = checked (nothing locks on upgrade).
     seedVerify: false,     // R3.5 (h-user): placement-aced fact awaiting one unscaffolded × proof before R4/bridge
     placed: false,         // h6 (h-user): placement-SEEDED working rung → confirms on ONE clean in-play hit (not N);
                            //   cleared on that confirm or on any ordinary wrong (estimate then suspect → re-earn normally)
@@ -1487,9 +1554,42 @@ function tt_interval(eng, f) {
   var d = c[Math.min(f.curvePtr, c.length - 1)];
   return d * 86400000 * eng.child.forgettingMult * TT_C.AGE_INTERVAL_MULT(eng.config.age);
 }
+// h24 nested levels (TT_C.INTRO_BAND_MARGIN / BORED_BAND_MARGIN). null (< 5 answers) = healthy for intros.
+function tt_bandHealthy(eng) {
+  var acc = tt_rollingAcc(eng);
+  return acc === null || acc >= eng.child.setpoint - TT_C.INTRO_BAND_MARGIN - 1e-9;
+}
+// h24 (Kath): the valve needs BOTH figures high — overall (review too) and WIP. Easy review answers alone
+// can't grow WIP: WIP accuracy must show the child coping with what they're learning.
+function tt_boredBand(eng) {
+  var bar = eng.child.setpoint + TT_C.BORED_BAND_MARGIN - 1e-9;
+  var acc = tt_rollingAcc(eng), wacc = tt_rollingWipAcc(eng);
+  return acc !== null && acc >= bar && wacc !== null && wacc >= bar;
+}
+function tt_rollingWipAcc(eng) {
+  var r = eng.rollingWip || [];
+  if (r.length < TT_C.ROLLING_MIN_ANSWERS) return null;
+  var c = 0; for (var i = 0; i < r.length; i++) if (r[i]) c++;
+  return c / r.length;
+}
+// One answer into the readings: the overall window, the WIP window (if the fact was in WIP when asked),
+// the challenge window, and the session tally the debug shell shows.
+function tt_pushAccuracy(eng, d, correct, rtMs, wasWip) {
+  eng.rolling.push(correct);
+  if (eng.rolling.length > TT_C.ROLLING_WINDOW) eng.rolling.shift();
+  if (wasWip) {
+    if (!eng.rollingWip) eng.rollingWip = [];
+    eng.rollingWip.push(correct);
+    if (eng.rollingWip.length > TT_C.WIP_ROLLING_WINDOW) eng.rollingWip.shift();
+  }
+  eng.compWindow.push(tt_answerCompScore(eng, d, correct, rtMs));
+  if (eng.compWindow.length > TT_C.COMP_WINDOW) eng.compWindow.shift();
+  if (eng.session) { eng.session.scored = (eng.session.scored || 0) + 1; if (correct) eng.session.scoredCorrect = (eng.session.scoredCorrect || 0) + 1; }
+  tt_updateWipBonus(eng);
+}
 function tt_rollingAcc(eng) {
   var r = eng.rolling;
-  if (r.length < 5) return null;
+  if (r.length < TT_C.ROLLING_MIN_ANSWERS) return null;
   var c = 0; for (var i = 0; i < r.length; i++) if (r[i]) c++;
   return c / r.length;
 }
@@ -1520,12 +1620,23 @@ function tt_challengeIndex(eng) {
 // high scores (error-flow ceremony starves the window of ordinary evidence),
 // so a collapsed rolling accuracy zeroes the bonus immediately.
 function tt_effectiveWip(eng) {
-  var acc = tt_rollingAcc(eng);
-  if (acc !== null && acc < eng.child.setpoint - 0.05) return eng.child.wipCap;
+  if (!tt_boredBand(eng)) return eng.child.wipCap;   // h24 (Kath): the valve needs ≥ setpoint + BORED_BAND_MARGIN (top nested level)
+  return eng.child.wipCap + Math.min(eng.wipBonus || 0, tt_wipBonusTarget(eng));
+}
+// The extra WIP the challenge index would justify right now (0 below the floor).
+function tt_wipBonusTarget(eng) {
   var idx = tt_challengeIndex(eng);
   var bonus = idx < TT_C.CHALLENGE_FLOOR ? 0 : Math.floor(idx / TT_C.CHALLENGE_PER_EXTRA);
-  if (bonus > TT_C.WIP_BONUS_MAX) bonus = TT_C.WIP_BONUS_MAX;
-  return eng.child.wipCap + bonus;
+  return bonus > TT_C.WIP_BONUS_MAX ? TT_C.WIP_BONUS_MAX : bonus;
+}
+// h24 (Kath): WIP rose 6 → 11 in one question when the index jumped. Now the stored bonus moves toward the
+// target at most +1 per WIP_GROW_GAP_Q questions (entering "bored" is the first +1); it falls at once — to 0
+// when the valve shuts, to the target when the index drops. Called after every counted answer.
+function tt_updateWipBonus(eng) {
+  var target = tt_boredBand(eng) ? tt_wipBonusTarget(eng) : 0, b = eng.wipBonus || 0;
+  if (target < b) b = target;
+  else if (target > b && eng.qCount - (eng.wipGrowQ == null ? -999 : eng.wipGrowQ) >= TT_C.WIP_GROW_GAP_Q) { b++; eng.wipGrowQ = eng.qCount; }
+  eng.wipBonus = b;
 }
 function tt_factRecentAcc(f) {
   var n = 0, c = 0;
@@ -1548,7 +1659,12 @@ function tt_resetGatesOnDemote(f) {
 }
 function tt_phase(eng, f) {
   if (!f.seen) return "unseen";
-  if (f.inFlux || f.confirmedRung < TT_C.CONSOLIDATING_MIN_RUNG) return "acquiring";
+  // h24 (brief §7): the buckets. WIP = introduced R1–R3 + failed checks (inFlux); acquiring = out of
+  // WIP, not yet confirmed R4; review = consolidating + mastered. "acquiring" EXCLUDES WIP (before h24
+  // it included it). A seeded fact awaiting its check is "unchecked" — outside every bucket.
+  if (f.unchecked) return "unchecked";
+  if (f.inFlux) return "wip";
+  if (f.confirmedRung < TT_C.CONSOLIDATING_MIN_RUNG) return "acquiring";
   // below the fact's own ceiling. For an UNBRIDGED fact the ceiling is R7 (÷ rungs
   // gated), so it can never reach "mastered" — division is a required form (SPEC §6
   // division-lag guard: never "mastered" off × evidence alone).
@@ -1584,7 +1700,7 @@ function tt_describe(eng, f, rung, rng, flags) {
   var d = {
     factKey: f.key, a: f.a, b: f.b, form: form, rung: rung,
     scaffold: { options: null, ordered: false },
-    flags: { ceremonial: false, probe: false, batteryKind: null, batteryStage: null, errorReask: false, intro: false, maintenance: false, seedVerify: false, reentry: false, assessment: false },
+    flags: { ceremonial: false, probe: false, batteryKind: null, batteryStage: null, errorReask: false, intro: false, maintenance: false, seedVerify: false, reentry: false, assessment: false, check: false, creditUp: false },
     correctAnswer: prod,
     // Which of this fact's two tables the child has actually MET, keyed by factor. The
     // scaffold counts in steps of one factor or the other, and a step the child cannot
@@ -1616,9 +1732,10 @@ function tt_describe(eng, f, rung, rng, flags) {
     d.presented = { left: prod, op: "÷", right: byA ? f.a : f.b, missingSlot: "result" };
     d.correctAnswer = byA ? f.b : f.a;
   }
-  // scaffold options per rung spec (h-user: tile distractors = SECOND number's table).
-  // product form only reaches these branches; p2 = second displayed, p1 = first.
-  var sTable = p2, sMult = p1;   // answer = sTable × sMult
+  // scaffold options per rung spec. h24 (Kath): the R1/R2 tile table is the factor the child is working
+  // on (tt_tileTable) — scope first, else the working group — whichever order the fact is shown in.
+  var sTable = (spec.opts === "tableFull" || spec.opts === "same4") ? tt_tileTable(eng, f, p2) : p2;
+  var sMult = sTable === f.a ? f.b : f.a;   // answer = sTable × sMult
   if (spec.opts === "tableFull") {
     // R1: full ordered table of the second number — count-up crutch fully available
     var opts = [];
@@ -1640,6 +1757,18 @@ function tt_describe(eng, f, rung, rng, flags) {
   return d;
 }
 
+// h24 (Kath): which factor's table supplies R1/R2 tiles. 1) A factor in the session's chosen scope (only /
+// mainly tables or group) — the adult or child set that level. 2) Else a factor in the child's working group
+// (eng.workingGroup). Both factors qualify → the SECOND factor as written (`second`; Kath h24: 6 × 7 → 7×).
+// 3) Neither → the easier factor.
+function tt_tileTable(eng, f, second) {
+  if (f.a === f.b) return f.a;
+  var scope = eng._sessionFocusTables;
+  function pick(inA, inB) { return inA && inB ? second : inA ? f.a : inB ? f.b : null; }
+  var t = scope ? pick(scope.indexOf(f.a) >= 0, scope.indexOf(f.b) >= 0) : null;
+  if (t === null) { var wg = eng.workingGroup || 0; t = pick(tt_groupOfTable(f.a) === wg, tt_groupOfTable(f.b) === wg); }
+  return t === null ? tt_easierFactor(f) : t;
+}
 // table window (h-user): tile distractors come from the SECOND-DISPLAYED number's
 // table — for "3×2" the 2× table — presented as an ordered slice INCLUDING the
 // answer. A young child can lean on rote of the low, familiar table (count in 2s)
@@ -1805,6 +1934,14 @@ function tt_probeRecord(eng, d, correct) {
 // — derivable via the 2× table — so it seeds/introduces with group 0, NOT with
 // the hard 6s. This matches the intro order (a fact is introduced at the earliest
 // of its two factors' tables). Table 1 is ungrouped → treat as latest.
+// h24 (Kath): the EASIER factor of a fact — the one earlier in the group list (1,10,5,2 → 3,11,4,8 →
+// 6,9,7,12). A bridge's ÷ divides by it, so the answer can be derived from a table the child knows
+// (6 ÷ 2 = 3: count in 2s).
+function tt_tableRank(t) {
+  for (var g = 0; g < TT_GROUPS.length; g++) { var i = TT_GROUPS[g].indexOf(t); if (i >= 0) return g * 100 + i; }
+  return 9999 + t;
+}
+function tt_easierFactor(f) { return tt_tableRank(f.a) <= tt_tableRank(f.b) ? f.a : f.b; }
 function tt_introGroupOfFact(f) {
   var ga = tt_groupOfTable(f.a), gb = tt_groupOfTable(f.b);
   var A = ga < 0 ? 99 : ga, B = gb < 0 ? 99 : gb;
@@ -1828,6 +1965,7 @@ function tt_seedFact(eng, f, rung, seedVerify, openBridge, mine) {
   if (!f.seen) { f.confirmedRung = 0; f.curvePtr = 0; f.seedFloor = 1; }   // T10: nothing confirmed/retained yet
   else if (!mine) f.seedFloor = Math.max(1, f.rung);
   f.seen = true; f.inFlux = false;              // seeded facts don't count toward WIP
+  f.unchecked = true;                            // h24: not askable until its check is answered (tt_nextIntroItem)
   f.placed = true;                               // h6: one clean in-play hit confirms the seeded rung (Issue 2a)
   f.rung = rung; f.seedVerify = !!seedVerify;
   if (openBridge) f.bridge = "open";
@@ -1888,12 +2026,17 @@ function tt_probeSeed(eng, pm) {
   // above where ÷ was actually SHOWN — the ÷-competence gate CAPS the reach (a strong-×-weak-÷ child is
   // NOT over-placed into division). SOME ÷ correct at a group = competence there. Working rung only —
   // confirmedRung stays 0 (T10), grid uncoloured until earned. (`placed` above → one hit confirms.)
-  var frontierGroup = g;   // g is function-scoped: post-loop it holds the frontier (or numGroups if all cleared)
+  var frontierGroup = g;
+  eng.workingGroup = Math.min(frontierGroup, TT_GROUPS.length - 1);   // h24: initial working group = placement frontier
+  // h24 (Kath): the frontier also orders R4/R6 checks (tt_nextCheckFact) — set by a Quiz (keypad) or Pop (tile)
+  // placement, the near-complete ones; NOT by Pairs' board, which probes only groups 1–2 and too few facts.
+  if (pm.kind !== "board") eng.placementFrontier = Math.min(frontierGroup, TT_GROUPS.length - 1);   // g is function-scoped: post-loop it holds the frontier (or numGroups if all cleared)
   var maxDivGroup = -1;
   for (var dg = 0; dg < pm.groups.length; dg++) {
     var dr = pm.results[dg].div || [];
     for (var dj = 0; dj < dr.length; dj++) if (dr[dj]) { maxDivGroup = dg; break; }   // SOME ÷ correct at this group
   }
+  if (maxDivGroup >= 0) eng.placementDivPassed = true;          // h24: a ÷ probe right → the bridge precursor may fire
   var routeTop = Math.min(frontierGroup - 1, maxDivGroup);    // highest group to ÷-route (frontier-bounded AND ÷-capped)
   if (maxDivGroup >= 0 && routeTop >= 0) {
     for (var dk in eng.facts) {
@@ -1908,7 +2051,7 @@ function tt_probeSeed(eng, pm) {
         // not R5 ÷ — missing number is an important skill and routing to R5 skipped it entirely
         // (sim: ~45% of an ace's ÷ facts never met it). No seed-verify (× already proven by the
         // routing); the bridge is NOT opened here — it runs normally at R4→R5 and its gate fades
-        // to auto-open after BRIDGE_FADE_TO_AUTO clean passes, so the ace's cost is bounded.
+        // to 3 stages, and a ÷-strong child usually opens it with the one-question precursor (h24), so the ace's cost is bounded.
         : (low ? tt_seedFact(eng, df, 4, false, false, !!mine[dk])        // → ? tiles, then the bridge
                : tt_seedFact(eng, df, 4, true, false, !!mine[dk]));       // split-group HARD → R3.5 early-÷ on-ramp
       if (routed) tt_emit(eng, "SEED_DIV_ROUTED", { factKey: df.key, toRung: df.rung, fromDivGroup: maxDivGroup });
@@ -2047,7 +2190,7 @@ function tt_startSession(eng, sessionCtx) {
   }
   eng.sessionSeq++;
   eng.lastBatteryEndQ = -999;
-  eng.session = { id: eng.sessionSeq, startTs: sessionCtx.nowTs, asked: 0, correct: 0, factsImproved: {}, tablesTouched: {}, bridgesOpened: {}, warmLeft: TT_C.SESSION_WARM_QUESTIONS, lastWasLapse: false };
+  eng.session = { id: eng.sessionSeq, startTs: sessionCtx.nowTs, asked: 0, correct: 0, factsImproved: {}, tablesTouched: {}, bridgesOpened: {}, warmLeft: TT_C.SESSION_WARM_QUESTIONS, lastWasLapse: false, scored: 0, scoredCorrect: 0, fullBatteries: 0 };
   tt_emit(eng, "SESSION_OPENED", { sessionId: eng.sessionSeq });
   return eng.sessionSeq;
 }
@@ -2242,6 +2385,9 @@ function tt_nextQuestion(eng, sessionCtx, rng) {
   tt_releaseSpacedReasks(eng, sessionCtx.nowTs);   // step 3c items whose time has come
   for (var i = 0; i < eng.reaskQueue.length; i++) {
     if (eng.reaskQueue[i].dueAtQ <= eng.qCount) {
+      // h22 (Kath): the queue carries over between sessions, so an "only" session can hold a miss from an
+      // earlier, wider session. Hold it (stays queued, never dropped) until a session where it is in scope.
+      if (mi.kind === "only" && !tt_involves(eng.facts[eng.reaskQueue[i].key], mi.tables)) continue;
       var item = eng.reaskQueue.splice(i, 1)[0];
       var ef = eng.facts[item.key];
       var rr = ef.rung >= 6 ? 6 : Math.max(1, Math.min(ef.rung, 3));
@@ -2268,8 +2414,11 @@ function tt_nextQuestion(eng, sessionCtx, rng) {
   }
   eng._lastWipEff = effWip;
   if (tt_introAllowed(eng, effWip, {})) {
-    var nf = tt_nextIntroFact(eng, sessionCtx);
-    if (nf) return tt_serveIntro(eng, nf, sessionCtx, rng);
+    var it = tt_nextIntroItem(eng, sessionCtx, { rng: rng });
+    if (it) return it.check ? tt_serveCheck(eng, it.f, sessionCtx, rng) : tt_serveIntro(eng, it.f, sessionCtx, rng);
+  } else {
+    var fw = tt_fullWipCheck(eng, effWip, sessionCtx, rng);   // h24: WIP exactly full → an occasional R6 check
+    if (fw) return fw;
   }
 
   // (3) weighted pool over seen facts, constraint-filtered
@@ -2279,18 +2428,20 @@ function tt_nextQuestion(eng, sessionCtx, rng) {
   if (!pick) { pick = tt_weightedPick(eng, sessionCtx, rng, 2); relaxUsed = 2; }
   if (!pick) { // pool empty (fresh profile / tiny early pool): introduce if WIP allows
     if (tt_introAllowed(eng, tt_effectiveWip(eng), { force: true })) {
-      var nf2 = tt_nextIntroFact(eng, sessionCtx);
-      if (nf2) return tt_serveIntro(eng, nf2, sessionCtx, rng);
+      var it2 = tt_nextIntroItem(eng, sessionCtx, { rng: rng });
+      if (it2) return it2.check ? tt_serveCheck(eng, it2.f, sessionCtx, rng) : tt_serveIntro(eng, it2.f, sessionCtx, rng);
     }
-    // emergency: least-recently-asked seen fact, gaps waived (never return null mid-session)
+    // emergency: least-recently-asked seen fact, gaps waived (never return null mid-session).
+    // h24: a checked fact first; an unchecked one only if nothing else exists, served as its check.
     var lru = null;
     for (var lk in eng.facts) {
       var lf = eng.facts[lk];
       if (!lf.seen) continue;
       if (mi.kind === "only" && !tt_involves(lf, mi.tables)) continue;
-      if (!lru || lf.lastAskedAtQ < lru.lastAskedAtQ) lru = lf;
+      if (!lru || (lru.unchecked && !lf.unchecked) || (!!lru.unchecked === !!lf.unchecked && lf.lastAskedAtQ < lru.lastAskedAtQ)) lru = lf;
     }
     if (!lru) return null;
+    if (lru.unchecked) return tt_serveCheck(eng, lru, sessionCtx, rng);
     pick = lru;
     var d3 = tt_buildAsk(eng, pick, rng);
     d3._why = "emergency LRU pick (pool empty)";
@@ -2310,7 +2461,9 @@ function tt_explainPick(eng, f, sessionCtx, relaxUsed) {
   var now = sessionCtx.nowTs;
   var parts = [];
   parts.push("phase " + tt_phase(eng, f));
-  if (f.dueAtTs !== 0 && now >= f.dueAtTs) parts.push("DUE " + ((now - f.dueAtTs) / 3600000).toFixed(1) + "h overdue");
+  if (f.confirmedRung >= TT_C.RETENTION_FROM_RUNG && f.dueAtTs !== 0 && now >= f.dueAtTs) parts.push("DUE " + ((now - f.dueAtTs) / 3600000).toFixed(1) + "h overdue");   // h24: day clock from R8 only
+  var lagSince = eng.qCount - f.lastAskedAtQ, lagFrom = f.inFlux ? TT_C.LAGGARD_WIP_START_Q : TT_C.LAGGARD_START_Q;
+  if (f.confirmedRung < TT_C.RETENTION_FROM_RUNG && lagSince > lagFrom) parts.push("laggard boost (" + lagSince + " q unasked)");
   var acc = tt_factRecentAcc(f);
   if (acc !== null && acc < 1) parts.push("recent acc " + Math.round(acc * 100) + "%");
   if (mi.kind === "mainly" && tt_involves(f, mi.tables)) parts.push("focus×5");
@@ -2325,28 +2478,136 @@ function tt_explainPick(eng, f, sessionCtx, relaxUsed) {
 //   opts.force    pool is empty → WIP room is the only condition (the drill's fallback)
 //   opts.extra    intros already reserved but not yet applied (a Pairs board's batch)
 //   opts.waiveGap the spacing gap is measured per board, not per intro (Pairs)
-function tt_introAllowed(eng, effWip, opts) {
+function tt_introAllowed(eng, effWip, opts) { return tt_introGate(eng, effWip, opts).ok; }
+// The gate's decision AND which condition decided it (h24): { ok, failed: "wip"|"band"|"warm"|"gap"|null,
+// gapNeed, since, fill }. Conditions are tested in this order; `failed` names the first that fails.
+function tt_introGate(eng, effWip, opts) {
   opts = opts || {};
-  if (tt_inFluxCount(eng) + (opts.extra || 0) >= effWip) return false;
-  if (opts.force) return true;
-  var acc = tt_rollingAcc(eng);
-  if (acc !== null && acc < eng.child.setpoint - 0.05) return false;   // band unhealthy
-  if (eng.session && eng.session.warmLeft > 0) return false;           // warm-up
-  var introGap = effWip > eng.child.wipCap ? TT_C.BORED_INTRO_GAP : TT_C.INTRO_MIN_GAP_Q;
-  return !!opts.waiveGap || eng.qCount - eng.lastIntroQ >= introGap;
+  var fill = tt_fillMode(eng), since = eng.qCount - eng.lastIntroQ;
+  var gapNeed = fill ? TT_C.FIRST_SESSION_INTRO_GAP : effWip > eng.child.wipCap ? TT_C.BORED_INTRO_GAP : TT_C.INTRO_MIN_GAP_Q;
+  var g = { ok: false, failed: null, gapNeed: gapNeed, since: since, fill: fill };
+  if (tt_inFluxCount(eng) + (opts.extra || 0) >= effWip) { g.failed = "wip"; return g; }
+  // h24 (Kath): while the first session fills WIP, even a forced intro waits for the 2-question gap — the
+  // just-introduced fact takes the question between (the empty-pool LRU pick), so each new fact is asked once.
+  if (opts.force) { if (fill && !opts.waiveGap && since < gapNeed) g.failed = "gap"; else g.ok = true; return g; }
+  if (!tt_bandHealthy(eng)) { g.failed = "band"; return g; }               // band unhealthy (< 75%; h24 nested levels)
+  if (eng.session && eng.session.warmLeft > 0) { g.failed = "warm"; return g; }   // warm-up
+  if (!opts.waiveGap && since < gapNeed) { g.failed = "gap"; return g; }
+  g.ok = true;
+  return g;
+}
+// h24 (Kath): the player's FIRST session (game entry #1). No bridge there; WIP fills fast.
+function tt_firstSession(eng) { return !!eng.session && eng.session.id === 1; }
+// First session, and WIP (base cap) not yet full this session. A pure query: the latch (session.wipFilled)
+// is set where WIP fills — tt_noteWipFull, after an intro or a failed check.
+function tt_fillMode(eng) {
+  return tt_firstSession(eng) && !eng.session.wipFilled && tt_inFluxCount(eng) < eng.child.wipCap;
+}
+function tt_noteWipFull(eng) {
+  if (eng.session && tt_inFluxCount(eng) >= eng.child.wipCap) eng.session.wipFilled = true;
 }
 
-function tt_nextIntroFact(eng, sessionCtx) {
+// h24 (brief §7): an intro opportunity serves EITHER the next new fact OR the next unchecked
+// placement-seeded fact (its check). A low-rung check (≤ LOW_CHECK_MAX_RUNG) always wins (Kath h24); otherwise
+// new facts and checks ALTERNATE (Kath); while the first session fills WIP, 1 slot in FILL_CHECK_EVERY is a
+// check. eng.introNewRun = new facts served since the last check.
+// ONE copy, reached by every caller (drill, Pop, Pairs).
+//   opts.tile  Class-C: only checks askable on tiles (no R6 typed seed-verify — Quiz-only)
+//   opts.form  Pairs: only checks whose seeded form matches the board ("product" | "missingFactor" | "division")
+//   opts.skip  keys already reserved (a Pairs batch)
+//   opts.newRun the run to decide from (a Pairs batch simulates its own sequence)
+//   opts.rng   the R6 seed-verify checks are drawn at RANDOM (Kath h24); without rng, intro order (displays)
+// → { f, check } or null.
+function tt_nextIntroItem(eng, sessionCtx, opts) {
+  opts = opts || {};
+  var nf = tt_nextIntroFact(eng, sessionCtx, opts.skip), cf = tt_nextCheckFact(eng, sessionCtx, opts);
+  if (cf && tt_checkRung(cf) <= TT_C.LOW_CHECK_MAX_RUNG) return { f: cf, check: true };   // h24: low-rung checks first
+  if (nf && cf) {
+    var run = opts.newRun !== undefined ? opts.newRun : (eng.introNewRun || 0);
+    var need = tt_fillMode(eng) ? TT_C.FILL_CHECK_EVERY - 1 : 1;
+    return run >= need ? { f: cf, check: true } : { f: nf, check: false };
+  }
+  return nf ? { f: nf, check: false } : cf ? { f: cf, check: true } : null;
+}
+// The next unchecked seeded fact, scoped like an introduction (h24, Kath). Priority: "might or might not
+// know" before "probably knows" — ascending CHECK rung (R1/R3 tile + partial seeds → R4 ÷-routed → R6
+// seed-verify). Within R1–R3, intro order; R4 and R6 checks are drawn at random within their rung when
+// `opts.rng` is given (Kath h24: a strong child gets a wide spread of assumed-strong facts, not the 1× table
+// first). Without rng — a display — the first in intro order is named.
+function tt_checkRung(f) { return f.seedVerify ? 6 : f.rung; }
+function tt_nextCheckFact(eng, sessionCtx, opts) {
+  opts = opts || {};
+  var mi = tt_modeInfo(sessionCtx.mode), skip = opts.skip || [];
+  function fits(f) {
+    if (!f.unchecked || skip.indexOf(f.key) >= 0) return false;
+    if (opts.strongOnly && !f.seedVerify) return false;   // h24: the full-WIP R6 check
+    if (opts.tile && (f.seedVerify || TT_RUNGS[f.rung].opts === null)) return false;
+    if (opts.form && (f.seedVerify || TT_RUNGS[f.rung].form !== opts.form)) return false;
+    return true;
+  }
+  // h24 (Kath): once no R1–R3 check is left, R4/R6 checks of facts INVOLVING a table of the placement-frontier
+  // group come first (random among them) — the frontier tables' rows fill together on the map / reef.
+  var ft = eng.placementFrontier != null && TT_GROUPS[eng.placementFrontier] ? TT_GROUPS[eng.placementFrontier] : null;
+  function onFrontier(f) { return !!ft && (ft.indexOf(f.a) >= 0 || ft.indexOf(f.b) >= 0); }
+  function pick(inScope) {
+    var best = [], bestR = 99, front = [];
+    for (var i = 0; i < eng.introOrder.length; i++) {
+      var f = eng.facts[eng.introOrder[i]];
+      if (!fits(f) || !inScope(f)) continue;
+      var r = tt_checkRung(f);
+      if (r > TT_C.LOW_CHECK_MAX_RUNG && onFrontier(f)) front.push(f);
+      if (r < bestR) { bestR = r; best = [f]; } else if (r === bestR) best.push(f);
+    }
+    if (!best.length) return null;
+    if (bestR > TT_C.LOW_CHECK_MAX_RUNG && front.length) best = front;   // frontier tables across R4 and R6 together
+    return bestR > TT_C.LOW_CHECK_MAX_RUNG && opts.rng ? best[Math.floor(opts.rng() * best.length)] : best[0];
+  }
+  var f = pick(function (g) { return mi.kind === "any" || tt_involves(g, mi.tables); });
+  if (!f && mi.kind === "mainly") f = pick(function () { return true; });
+  return f;
+}
+// h24 (Kath): WIP EXACTLY full (never over) → an R6 seed-verify check of a strong seed, at most one per
+// FULL_WIP_CHECK_GAP questions; the accuracy band and the warm-up still apply. Quiz only (R6 is typed).
+function tt_fullWipCheck(eng, effWip, sessionCtx, rng) {
+  if (tt_inFluxCount(eng) !== effWip) return null;
+  if (!tt_bandHealthy(eng) || (eng.session && eng.session.warmLeft > 0)) return null;
+  if (eng.qCount - eng.lastIntroQ < TT_C.FULL_WIP_CHECK_GAP) return null;
+  var f = tt_nextCheckFact(eng, sessionCtx, { strongOnly: true, rng: rng });
+  if (!f) return null;
+  var d = tt_serveCheck(eng, f, sessionCtx, rng);
+  d._fullWip = true;
+  d._why = "check of a strong seed while WIP is exactly full (R6, ≥ " + TT_C.FULL_WIP_CHECK_GAP + " questions apart)";
+  return d;
+}
+// The check: the seeded fact's first ordinary ask — seed-verify = the R6 typed product, else its seeded
+// rung. Uses the intro slot (spacing). tt_recordAnswer routes the answer (pass → out of WIP, fail → WIP).
+function tt_serveCheck(eng, f, sessionCtx, rng) {
+  eng.lastIntroQ = eng.qCount;
+  eng.introNewRun = 0;
+  var d;
+  if (f.seedVerify) d = tt_describe(eng, f, 6, rng, { seedVerify: true, check: true });
+  else {
+    var r = Math.min(f.rung, tt_maxUnlocked(f));
+    if (tt_rungLocked(f, r)) r = tt_prevUnlocked(f, r);
+    d = tt_describe(eng, f, r, rng, { check: true });
+  }
+  d._why = "check of a placement-seeded fact (intro slot), R" + d.rung;
+  tt_markServed(eng, d, sessionCtx);
+  return d;
+}
+
+function tt_nextIntroFact(eng, sessionCtx, skip) {
+  skip = skip || [];
   var mi = tt_modeInfo(sessionCtx.mode);
   for (var i = 0; i < eng.introOrder.length; i++) {
     var f = eng.facts[eng.introOrder[i]];
-    if (f.seen) continue;
+    if (f.seen || skip.indexOf(f.key) >= 0) continue;
     if (mi.kind !== "any" && !tt_involves(f, mi.tables)) continue; // focus intros stay on focus
     return f;
   }
   if (mi.kind === "mainly") { // focus fully introduced: fall back to global order
     for (var j = 0; j < eng.introOrder.length; j++)
-      if (!eng.facts[eng.introOrder[j]].seen) return eng.facts[eng.introOrder[j]];
+      if (!eng.facts[eng.introOrder[j]].seen && skip.indexOf(eng.introOrder[j]) < 0) return eng.facts[eng.introOrder[j]];
   }
   return null;
 }
@@ -2355,7 +2616,11 @@ function tt_nextIntroFact(eng, sessionCtx) {
 // rung moves 0→1 AT SERVE (introduction machinery, not answer evidence).
 function tt_serveIntro(eng, f, sessionCtx, rng) {
   f.seen = true; f.inFlux = true; f.rung = 1;
+  eng.workingGroup = tt_introGroupOfFact(f);   // h24: a new fact moves the working group
+  eng.lastIntroGroup = eng.workingGroup;       // h24: … and is the "last released" signal for the bridge precursor
+  tt_noteWipFull(eng);
   eng.lastIntroQ = eng.qCount;
+  eng.introNewRun = (eng.introNewRun || 0) + 1;
   var d = tt_describe(eng, f, 0, rng, { ceremonial: true, intro: true });
   d.revealAnswer = true;
   d.scaffold = { options: null, ordered: false };
@@ -2368,17 +2633,19 @@ function tt_serveIntro(eng, f, sessionCtx, rng) {
 }
 
 // constraint layer (SPEC §5): hard zero within gaps; relax progressively if pool empties
-function tt_constraintOK(eng, f, relax) {
+function tt_constraintOK(eng, f, relax) { return tt_constraintReason(eng, f, relax) === ""; }
+// "" = allowed, else which gap blocks it (h24: the same rule, able to say why).
+function tt_constraintReason(eng, f, relax) {
   var prod = f.a * f.b;
   var sameFactGap = relax >= 2 ? 2 : TT_C.SAME_FACT_GAP;
-  if (eng.qCount - f.lastAskedAtQ < sameFactGap) return false;
+  if (eng.qCount - f.lastAskedAtQ < sameFactGap) return "same-fact gap";
   for (var i = eng.recentServed.length - 1; i >= 0; i--) {
     var r = eng.recentServed[i], gap = eng.qCount - r.q;
     if (gap >= TT_C.SAME_PRODUCT_GAP) break;
-    if (relax < 1 && r.product === prod && r.key !== f.key) return false;
-    if (relax < 1 && gap < TT_C.NEIGHBOUR_GAP && tt_isNeighbour(eng.facts[r.key], f)) return false;
+    if (relax < 1 && r.product === prod && r.key !== f.key) return "same-product gap";
+    if (relax < 1 && gap < TT_C.NEIGHBOUR_GAP && tt_isNeighbour(eng.facts[r.key], f)) return "neighbour gap";
   }
-  return true;
+  return "";
 }
 function tt_isNeighbour(f1, f2) {
   if (!f1 || f1.key === f2.key) return false;
@@ -2392,19 +2659,27 @@ function tt_isNeighbour(f1, f2) {
   return false;
 }
 
+// Why a fact is NOT in the weighted pool at this relax level — "" if it is (h24: one predicate, so the
+// rule has one home). Order: unseen · awaiting check · out of scope · gaps · warm-up.
+function tt_poolExclusion(eng, f, sessionCtx, relax, mi) {
+  mi = mi || tt_modeInfo(sessionCtx.mode);
+  if (!f.seen) return "unseen";
+  if (f.unchecked) return "awaiting check";        // h24: unchecked seeds wait for their check
+  if (mi.kind === "only" && !tt_involves(f, mi.tables)) return "out of scope";
+  var gap = tt_constraintReason(eng, f, relax);
+  if (gap) return gap;
+  if (eng.session && eng.session.warmLeft > 0 && relax === 0) { // open on comfortably-known facts; null acc = seeded-known
+    var wacc = tt_factRecentAcc(f);
+    if (f.confirmedRung < TT_C.WARM_MIN_CONFIRMED || (wacc !== null && wacc < TT_C.WARM_MIN_ACC)) return "warm-up";
+  }
+  return "";
+}
 function tt_weightedPick(eng, sessionCtx, rng, relax) {
   var mi = tt_modeInfo(sessionCtx.mode);
-  var warm = eng.session && eng.session.warmLeft > 0;
   var pool = [], total = 0;
   for (var key in eng.facts) {
     var f = eng.facts[key];
-    if (!f.seen) continue;
-    if (mi.kind === "only" && !tt_involves(f, mi.tables)) continue;
-    if (!tt_constraintOK(eng, f, relax)) continue;
-    if (warm && relax === 0) { // open on comfortably-known facts; null acc = seeded-known
-      var wacc = tt_factRecentAcc(f);
-      if (f.confirmedRung < 2 || (wacc !== null && wacc < 0.7)) continue;
-    }
+    if (tt_poolExclusion(eng, f, sessionCtx, relax, mi)) continue;
     var w = tt_weight(eng, f, sessionCtx, mi);
     if (w > 0) { pool.push({ f: f, w: w }); total += w; }
   }
@@ -2415,29 +2690,44 @@ function tt_weightedPick(eng, sessionCtx, rng, relax) {
 }
 
 // multiplicative weight (SPEC §5; v8: v8_computeWeight)
-function tt_weight(eng, f, sessionCtx, mi) {
+// h24: the weight AND its factors (the debug shell shows them; tt_weight is .w — one formula, able to say why).
+function tt_weightParts(eng, f, sessionCtx, mi) {
   var now = sessionCtx.nowTs;
-  var due = f.dueAtTs === 0 ? 1.0 : (now >= f.dueAtTs ? Math.min(4, 1 + (now - f.dueAtTs) / Math.max(1, tt_interval(eng, f))) : 0.3);
-  var ph = tt_phase(eng, f);
-  var phase = ph === "acquiring" ? 3 : ph === "consolidating" ? 1.5 : 0.5;
-  // a fact at/through the bridge boundary is a live frontier, not resting retention:
-  // it just confirmed a rung but its next form (÷) is unlearned, and a ×-topped/held
-  // fact has a long interval (low due-ness). Lift it, or the bridge never gets turns
-  // and division starves (§6).
-  if ((f.bridge === "open" && f.confirmedRung < tt_maxUnlocked(f)) || tt_bridgeEligible(eng, f)) {
-    due = Math.max(due, 1.5); phase = 3;
+  // h24 (Kath): the DAY clock is retention — it weighs a fact only once it is confirmed R8 (consolidation → mastery):
+  // ×0.3 until due, up to ×4 overdue. Below R8 the fact is still learning: no day de-weighting and no overdue boost;
+  // only the question-count rules hold it back (same-fact gap, recency). Its due time is still recorded on every
+  // right answer (retention evidence / curvePtr), just not used here.
+  var due = f.confirmedRung < TT_C.RETENTION_FROM_RUNG ? 1.0 :
+            f.dueAtTs === 0 ? 1.0 : (now >= f.dueAtTs ? Math.min(4, 1 + (now - f.dueAtTs) / Math.max(1, tt_interval(eng, f))) : 0.3);
+  var phase = TT_C.PHASE_WEIGHT[tt_phase(eng, f)] || 0;   // h24: wip > acquiring > review
+  // h24 (Kath): a bridged fact still climbing R5–R8 is acquiring a form, not resting — it weighs like acquiring.
+  // Due-ness stays per fact (untouched). Confirmed R8 but not mastered → consolidating; mastered → mastered.
+  if (f.bridge === "open" && f.confirmedRung < tt_maxUnlocked(f)) phase = Math.max(phase, TT_C.PHASE_WEIGHT.climbing);
+  // a fact AT the bridge boundary is a live frontier, not resting retention: it just confirmed R4 but its
+  // next form (÷) can't be met until the bridge runs, and a held fact has a long interval (low due-ness).
+  // Lift it, or the bridge never gets turns (§6). h24 (Kath): ONLY bridge-ready facts — a bridged fact
+  // climbing R5–R8 is acquiring a different skill, not a special need: it weighs as standard (the old lift
+  // made it ~10× a WIP fact once WIP had been answered).
+  if (tt_bridgeEligible(eng, f) && !tt_firstSession(eng)) {
+    due = Math.max(due, 1.5); phase = Math.max(phase, TT_C.PHASE_WEIGHT.acquiring);
   }
   var facc = tt_factRecentAcc(f);
   var accF = facc === null ? 1.2 : 1 + (1 - facc);
   var since = eng.qCount - f.lastAskedAtQ;
   var rec = Math.min(1, 0.4 + since * 0.05);
+  var lag = 1;   // h24: the laggard boost (learning facts only — from confirmed R8 the day clock's overdue boost does this)
+  if (f.confirmedRung < TT_C.RETENTION_FROM_RUNG) {
+    var l0 = f.inFlux ? TT_C.LAGGARD_WIP_START_Q : TT_C.LAGGARD_START_Q, l1 = f.inFlux ? TT_C.LAGGARD_WIP_FULL_Q : TT_C.LAGGARD_FULL_Q;
+    if (since > l0) lag = Math.min(TT_C.LAGGARD_MAX, 1 + (TT_C.LAGGARD_MAX - 1) * (since - l0) / (l1 - l0));
+  }
   var modeF = (mi && mi.kind === "mainly") ? (tt_involves(f, mi.tables) ? 5 : 1) : 1;
-  var w = due * phase * accF * rec * modeF;
   // T11: a fact primed by a failed re-entry probe is lifted so its ordinary re-ask
   // lands this session — where its next wrong demotes (T9) or a correct starts clearing.
-  if (f.reentryPrimed) w *= TT_C.REENTRY_WEIGHT_BOOST;
-  return w;
+  var prime = f.reentryPrimed ? TT_C.REENTRY_WEIGHT_BOOST : 1;
+  return { due: due, phase: phase, acc: accF, rec: rec, focus: modeF, lag: lag, prime: prime,
+           w: due * phase * accF * rec * modeF * lag * prime };
 }
+function tt_weight(eng, f, sessionCtx, mi) { return tt_weightParts(eng, f, sessionCtx, mi).w; }
 
 // rung for an ordinary ask (SPEC §2/§5): frontier by default; band-low steps down
 // one unlocked rung; retention rotation once keypad-product is confirmed rotates
@@ -2515,7 +2805,49 @@ function tt_bridgeEligible(eng, f) {
 // on the R5/R8 climb). Returns the stage count for THIS child right now.
 function tt_bridgeGateSize(eng) {
   var p = eng.child.bridgeCleanPasses || 0;
-  return p < TT_C.BRIDGE_FADE_TO_3 ? 5 : p < TT_C.BRIDGE_FADE_TO_AUTO ? 3 : 0;
+  return p < TT_C.BRIDGE_FADE_TO_3 ? 5 : 3;   // h24: auto-open retired (the precursor replaces it)
+}
+
+// h24 (Kath): does this child probably divide already? Any one of: ≥ PRECURSOR_CLEAN_EVER clean bridges ever ·
+// the last new fact introduced is in group 3 · the last DIV_RECENT_N ÷ answers all right · a placement ÷ probe passed.
+function tt_precursorAllowed(eng) { return tt_precursorReasons(eng).length > 0; }
+// Which of the precursor gate's conditions hold now (the gate is open if any does) — for the debug shell.
+function tt_precursorReasons(eng) {
+  var dr = eng.divRecent || [], n = 0, out = [];
+  for (var i = 0; i < dr.length; i++) if (dr[i]) n++;
+  if ((eng.child.bridgeCleanEver || 0) >= TT_C.PRECURSOR_CLEAN_EVER) out.push("clean bridges ever " + eng.child.bridgeCleanEver);
+  if ((eng.lastIntroGroup != null ? eng.lastIntroGroup : -1) >= TT_C.PRECURSOR_GROUP) out.push("last new fact in group " + (eng.lastIntroGroup + 1));
+  if (dr.length >= TT_C.DIV_RECENT_N && n >= TT_C.DIV_RECENT_MIN) out.push(n + " of the last " + dr.length + " ÷ right");
+  if (eng.placementDivPassed) out.push("placement ÷ probe passed");
+  return out;
+}
+// The precursor: ONE ÷ tile question (R5 form, as the bridge's own ÷ and the rung it leads to) dividing by the
+// HARDER factor (14 ÷ 7 = 2) — no teaching, so the hard way round is the fair test. Ceremonial: a miss is no penalty.
+function tt_servePrecursor(eng, f, rng) {
+  var d = tt_describe(eng, f, 5, rng, { ceremonial: true, precursor: true });
+  var easy = tt_easierFactor(f), hard = easy === f.a ? f.b : f.a;
+  d.presented = { left: f.a * f.b, op: "÷", right: hard, missingSlot: "result" };
+  d.correctAnswer = easy;
+  d._why = "bridge precursor (one hard ÷ tile question: right → ÷ opens, wrong → the battery)";
+  tt_emit(eng, "PRECURSOR_STARTED", { factKey: f.key });
+  return d;
+}
+function tt_precursorRecord(eng, f, correct) {
+  eng.lastBatteryEndQ = eng.qCount;                  // pacing clock, as a battery
+  if (correct) {
+    eng.child.bridgeCleanPasses = (eng.child.bridgeCleanPasses || 0) + 1;   // counts as a clean pass (Kath)
+    eng.child.bridgeCleanEver = (eng.child.bridgeCleanEver || 0) + 1;
+    f.precursorFailed = false;
+    tt_emit(eng, "PRECURSOR_PASSED", { factKey: f.key });
+    tt_openBridge(eng, f);
+  } else {
+    // Kath h24: the battery comes a few questions LATER (3–5), not straight after — less sameness. Reuses the
+    // mid-battery retrigger queue; f.precursorFailed makes that launch a battery, not another precursor.
+    f.precursorFailed = true;
+    var span = TT_C.BRIDGE_RETRIGGER_MAX - TT_C.BRIDGE_RETRIGGER_MIN + 1;
+    eng.bridgeReask.push({ key: f.key, dueAtQ: eng.qCount + TT_C.BRIDGE_RETRIGGER_MIN + (eng.qCount % span) });
+    tt_emit(eng, "PRECURSOR_FAILED", { factKey: f.key });
+  }
 }
 
 // open division for a fact and promote it onto the division rung it was held at.
@@ -2538,8 +2870,10 @@ function tt_openBridge(eng, f) {
 // returns null — the ordinary climb then serves the ÷ rung next tick.
 function tt_maybeLaunchBridge(eng, sessionCtx, rng) {
   if (eng.battery) return null;
+  if (tt_firstSession(eng)) return null;   // h24 (Kath): no bridge in a player's first session
   if (eng.session && eng.session.warmLeft > 0) return null;   // not during warm-up
   var mi = tt_modeInfo(sessionCtx.mode);
+
 
   // (a) middle-fail retrigger due — relaunch the same fact (a continuation, not a
   // fresh launch: exempt from pacing)
@@ -2547,7 +2881,7 @@ function tt_maybeLaunchBridge(eng, sessionCtx, rng) {
     if (eng.bridgeReask[i].dueAtQ <= eng.qCount) {
       var item = eng.bridgeReask.splice(i, 1)[0];
       var rf = eng.facts[item.key];
-      if (rf && rf.bridge !== "open" && !rf.bridgeNeedReconfirm) return tt_launchGate(eng, rf, rng);
+      if (rf && rf.bridge !== "open" && !rf.bridgeNeedReconfirm) { var rd = tt_launchGate(eng, rf, rng, { noPrecursor: true }); if (rd) return rd; }
       i--; // spliced — recheck this index
     }
   }
@@ -2560,6 +2894,9 @@ function tt_maybeLaunchBridge(eng, sessionCtx, rng) {
     if (!tt_bridgeEligible(eng, f)) continue;
     if (mi.kind === "only" && !tt_involves(f, mi.tables)) continue;
     if (eng.qCount - (f.bridgeLastFailQ == null ? -999 : f.bridgeLastFailQ) < TT_C.BRIDGE_FAIL_COOLDOWN_Q) continue;
+    // h24: a PRECURSOR is one ordinary-looking question — never straight after the same fact (Kath: no fact twice in a
+    // row). Only 2, not SAME_FACT_GAP: Pop picks its own facts and repeats a few often, so a 6-gap could starve it.
+    if (!f.precursorFailed && tt_precursorAllowed(eng) && eng.qCount - f.lastAskedAtQ < TT_C.PRECURSOR_FACT_GAP) continue;
     // priority: bridgePending (relaunch owed) > unbridged; then most-retained, earliest
     var s = (f.bridge === "pending" ? 100 : 0) + f.curvePtr * 2 - f.introIdx * 0.001;
     if (s > bestScore) { bestScore = s; best = f; }
@@ -2568,13 +2905,17 @@ function tt_maybeLaunchBridge(eng, sessionCtx, rng) {
   return tt_launchGate(eng, best, rng);
 }
 
-// launch the gate for a fact at the current fade level: full/short battery, or
-// auto-open. Battery launches return the first stage; auto-open returns null.
-function tt_launchGate(eng, f, rng) {
+// launch the gate for a fact: the PRECURSOR (h24) when the child probably divides and this fact hasn't missed
+// it; else the battery at the current fade level — a full one only while the session's cap allows (null = wait).
+function tt_launchGate(eng, f, rng, opts) {
+  if (!(opts && opts.noPrecursor) && !f.precursorFailed && tt_precursorAllowed(eng)) return tt_servePrecursor(eng, f, rng);
   var gate = tt_bridgeGateSize(eng);
-  if (gate === 0) { tt_openBridge(eng, f); return null; }     // faded to auto-open
   var kind = gate === 5 ? "bridge5" : "bridge3";
-  eng.battery = { key: f.key, kind: kind, stage: 0, flip: f.bridgeDivFlip, clean: true };
+  if (kind === "bridge5" && eng.session) {
+    if ((eng.session.fullBatteries || 0) >= TT_C.FULL_BATTERY_SESSION_CAP) return null;   // h24: ≤ 2 full batteries a session
+    eng.session.fullBatteries = (eng.session.fullBatteries || 0) + 1;
+  }
+  eng.battery = { key: f.key, kind: kind, stage: 0, clean: true };
   tt_emit(eng, "BRIDGE_STARTED", { factKey: f.key, kind: kind });
   var d = tt_batteryDescriptor(eng, f, eng.battery, rng);
   d._why = "bridge battery " + kind + " stage 1 (§6, ceremonial)";
@@ -2583,8 +2924,10 @@ function tt_launchGate(eng, f, rng) {
 
 // build the ceremonial descriptor for the current battery stage. Each stage
 // primes the next — the priming IS the scaffold, hence ceremonial.
-//   bridge5 (full gate):  a×b → b×a → a×?=p → ?×b=p → (p÷a | p÷b, coin-flip alternates)
-//   bridge3 (short gate):  b×a → a×?=p → p÷a   (product one order, mf the other)
+//   bridge5 (full gate):  a×b → b×a → a×?=p → ?×b=p → p÷e
+//   bridge3 (short gate):  b×a → a×?=p → p÷e   (product one order, mf the other)
+// e = the EASIER factor (h24, Kath; tt_easierFactor): the battery's one ÷ can be derived from a known table.
+// The other direction comes later, on the ordinary R5/R8 climb (both ÷ directions are a mastery gate).
 function tt_batteryDescriptor(eng, f, bat, rng) {
   var p = f.a * f.b, stage = bat.stage;
   var d = {
@@ -2607,11 +2950,11 @@ function tt_batteryDescriptor(eng, f, bat, rng) {
     else if (stage === 1) prod(f.b, f.a);
     else if (stage === 2) mf(f.a, "factor2");        // a×?=p, answer b
     else if (stage === 3) mf(f.b, "factor1");        // ?×b=p, answer a
-    else div(bat.flip ? f.a : f.b);                  // p÷a | p÷b
+    else div(tt_easierFactor(f));                    // p÷easier (h24)
   } else { // bridge3 short gate
     if (stage === 0) prod(f.b, f.a);
     else if (stage === 1) mf(f.a, "factor2");        // a×?=p, answer b
-    else div(f.a);                                   // p÷a
+    else div(tt_easierFactor(f));                    // p÷easier (h24)
   }
   return d;
 }
@@ -2632,8 +2975,8 @@ function tt_batteryRecord(eng, d, correct, rtMs, nowTs) {
     var clean = bat.clean;
     eng.battery = null;                              // battery complete
     eng.lastBatteryEndQ = eng.qCount;                // pacing clock (BRIDGE_MIN_GAP_Q)
-    f.bridgeDivFlip = !f.bridgeDivFlip;              // alternate ÷ divisor next time
-    if (clean) eng.child.bridgeCleanPasses = (eng.child.bridgeCleanPasses || 0) + 1;  // adaptive fade
+    if (clean) { eng.child.bridgeCleanPasses = (eng.child.bridgeCleanPasses || 0) + 1; eng.child.bridgeCleanEver = (eng.child.bridgeCleanEver || 0) + 1; }  // adaptive fade (+ ever, h24)
+    f.precursorFailed = false;
     tt_openBridge(eng, f);                           // passing the gate opens division
     return;
   }
@@ -2650,7 +2993,7 @@ function tt_batteryRecord(eng, d, correct, rtMs, nowTs) {
   var recentFail = eng.qCount - lastFailQ < TT_C.BRIDGE_FAIL_COOLDOWN_Q;   // failed already, recently
   f.bridgeLastFailQ = eng.qCount;                     // starts this fact's fresh-launch cooldown
   if (failForm === "product") {                       // early: no re-bridge until × re-confirms
-    f.bridgeNeedReconfirm = true;
+    f.bridgeNeedReconfirm = true; f.reconfirmHits = 0;
   } else if (failForm === "missingFactor") {          // middle: retrigger, unless it just failed recently
     if (!recentFail) {
       var span = TT_C.BRIDGE_RETRIGGER_MAX - TT_C.BRIDGE_RETRIGGER_MIN + 1;
@@ -2669,9 +3012,43 @@ function tt_batteryRecord(eng, d, correct, rtMs, nowTs) {
 // The core has many early returns; the wrapper notes the achievement tier once, after
 // whichever path ran (h16 best-ever tracking).
 function tt_recordAnswer(eng, d, correct, rtMs, age) {
-  tt_recordAnswerCore(eng, d, correct, rtMs, age);
   var f = eng.facts[d.factKey];
+  // h24 (Kath): a Pairs CREDIT answer — a WIP/unchecked fact answered in a HARDER form (tt_creditForms). Only a
+  // right answer counts (a wrong harder-form answer is no evidence about the easier form): it is not recorded.
+  if (d.flags.creditUp && (!correct || !f || !tt_creditForms(f)[d.form])) return;
+  var chk = !!(f && f.unchecked && tt_isCheckAnswer(d));
+  if (chk && tt_checkRung(f) <= TT_C.LOW_CHECK_MAX_RUNG) eng.workingGroup = tt_introGroupOfFact(f);   // h24: so does an R1–R3 check
+  eng._noAccuracy = chk || !!d.flags.creditUp;   // h24 (Kath): checks and credit answers never count toward accuracy / the challenge index
+  tt_recordAnswerCore(eng, d, correct, rtMs, age);
+  eng._noAccuracy = false;
+  if (chk) {
+    // h24 (brief §7): the check landed. Pass → out of WIP (seed-verify → working R4 = acquiring; another
+    // seed confirms in place). Fail, or a pass that leaves the fact below confirmed R3 (an R1 tile seed),
+    // → WIP. Room is guaranteed: the check was served through the intro gate, which required WIP room.
+    f.unchecked = false;
+    f.inFlux = d.flags.seedVerify ? !correct : (!correct || f.confirmedRung < TT_C.WIP_EXIT_RUNG);
+    tt_noteWipFull(eng);
+    eng.introNewRun = 0;
+  }
   if (f) tt_noteAchievement(eng, f);
+}
+// h24 (Kath): the forms in which a right Pairs answer earns a fact ONE hit at its working rung — harder forms
+// than the working rung's (× < ? < ÷), for a fact in WIP or unchecked whose (check) rung is below R6. A fact
+// above WIP earns none (shown in another form, it is display only).
+function tt_formRank(form) { return form === "product" ? 0 : form === "missingFactor" ? 1 : 2; }
+function tt_creditForms(f) {
+  var out = { product: false, missingFactor: false, division: false };
+  if (!f.seen || !(f.inFlux || f.unchecked) || tt_checkRung(f) >= 6) return out;
+  var r = tt_formRank(TT_RUNGS[f.rung].form);
+  out.missingFactor = r < 1; out.division = r < 2;
+  return out;
+}
+// The answer that counts as a seeded fact's check: the seed-verify ask, or its first ORDINARY ask (a
+// Pop/Pairs tile check arrives as a plain descriptor). Ceremonial machinery never checks a fact.
+function tt_isCheckAnswer(d) {
+  var fl = d.flags;
+  if (fl.seedVerify) return true;
+  return !(fl.ceremonial || fl.probe || fl.batteryKind || fl.reentry || fl.assessment || fl.intro || fl.errorReask || d.revealAnswer);
 }
 function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
   correct = !!correct;
@@ -2679,17 +3056,25 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
   eng.lastAnswerTs = nowTs;
   if (age) eng.config.age = age;
   var f = eng.facts[d.factKey];
+  var wasWip = !!(f && f.inFlux);   // h24: WIP membership AS ASKED (the answer may move it out)
 
   // effort gauge: every correct counts, ceremonial included (HOOKS §3)
   if (correct) eng.score++;
   if (eng.session &&correct) eng.session.correct++;
 
+  // h24: recent ÷ answers (precursor gate) — ordinary, battery ÷ stages, precursors; not probes, copies or Pairs credit
+  if (f && d.form === "division" && !d.flags.probe && !d.revealAnswer && !d.flags.creditUp) {
+    if (!eng.divRecent) eng.divRecent = [];
+    eng.divRecent.push(correct);
+    if (eng.divRecent.length > TT_C.DIV_RECENT_N) eng.divRecent.shift();
+  }
   if (f) {
     f.attempts.push({ ts: nowTs, rung: d.rung, form: d.form, latencyMs: rtMs, correct: correct, ceremonial: !!d.flags.ceremonial, q: d._servedAtQ });
     if (f.attempts.length > TT_C.ATTEMPTS_CAP) f.attempts.shift();
   }
 
   // ceremonial paths — never ordinary evidence (SPEC §5; SCENARIOS invariant 4)
+  if (d.flags.precursor) { tt_precursorRecord(eng, f, correct); return; }   // h24: the one-question bridge precursor
   if (d.flags.batteryKind) { tt_batteryRecord(eng, d, correct, rtMs, nowTs); return; }
   if (d.flags.probe) { tt_probeRecord(eng, d, correct); return; }
   if (d.flags.reentry) { tt_reentryRecord(eng, d, correct); return; }   // T11: fail primes, pass no-ops
@@ -2734,6 +3119,9 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
       }
     } else {
       tt_lapse(eng, f, nowTs);
+      // h24 (Kath): a WRONG re-ask counts as a wrong (the right answer was expected — a miss shows a problem);
+      // a right re-ask is expected, so it doesn't count as a right.
+      tt_pushAccuracy(eng, d, false, rtMs, wasWip);
     }
     if (eng.session) eng.session.lastWasLapse = !correct;
     return;
@@ -2742,16 +3130,21 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
   // --- ordinary evidence path ---
   if (f && f.reentryPrimed) f.reentryPrimed = false;   // T11: the primed re-ask has landed → drop the weight boost
   tt_anomalyMonitor(eng, d, correct);                  // anomaly gate: watch strong facts for whole-session collapse
-  eng.rolling.push(correct);
-  if (eng.rolling.length > TT_C.ROLLING_WINDOW) eng.rolling.shift();
-  eng.compWindow.push(tt_answerCompScore(eng, d, correct, rtMs));
-  if (eng.compWindow.length > TT_C.COMP_WINDOW) eng.compWindow.shift();
+  // h24 (Kath): checks (like re-asks, reveals and seed-verify above) stay out of the readings — else a
+  // struggler's easy seeded checks inflate accuracy and open the bored valve. eng.session.scored/scoredCorrect
+  // tally exactly what enters the window, so the debug shell shows the engine's own figure.
+  if (!eng._noAccuracy) tt_pushAccuracy(eng, d, correct, rtMs, wasWip);
   if (eng.session) eng.session.lastWasLapse = !correct;
 
   if (correct) {
     f.wrongStreak = 0;
-    // early-bridge-fail cooldown lifts once × is demonstrably back (clean product)
-    if (f.bridgeNeedReconfirm && d.form === "product" && rtMs <= tt_fastBar(eng, d.rung)) f.bridgeNeedReconfirm = false;
+    // early-bridge-fail block lifts once × is demonstrably back (h24, Kath): the WORKING rung re-confirmed —
+    // PROMOTE_HITS correct × / missing-number answers at it since the fail. Accuracy only: Pop/Pairs report a
+    // fixed rt, and an R4 fact is asked as missing number, so "a fast product" could never come (play-through).
+    if (f.bridgeNeedReconfirm && d.rung === f.rung && (d.form === "product" || d.form === "missingFactor")) {
+      f.reconfirmHits = (f.reconfirmHits || 0) + 1;
+      if (f.reconfirmHits >= tt_promoteHits(f.rung)) { f.bridgeNeedReconfirm = false; f.reconfirmHits = 0; }
+    }
     eng.correctStreak = (eng.correctStreak || 0) + 1;
     var fast = rtMs <= tt_fastBar(eng, d.rung);                  // ≤ fast-bar = FLUENT (T13; speed axis only)
     var spaced = f.dueAtTs === 0 || nowTs >= f.dueAtTs;
@@ -2767,7 +3160,7 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
     //     with a post-error reinforcement lockout. Fires only AT the working rung.
     //     Rung (form mastery) and curvePtr (retention) are independent axes: a rung
     //     confirms in-session, but "mastered" phase still needs curvePtr (tt_phase).
-    if (d.rung === f.rung) {
+    if (d.rung === f.rung || d.flags.creditUp) {   // h24: a credit answer counts as a hit at the working rung
       {   // h6 (h-user): promotion/confirmation on ACCURACY ALONE — the enclosing `correct` branch is the
         // only gate; speed is a SEPARATE axis (fluency, below). Gating promotion on speed is a LEARNING
         // DEAD-END for a reliable-but-slow deriver: unpromoted → never asked the next rung → never practises
@@ -2794,7 +3187,7 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
             tt_emit(eng, "FACT_CONFIRMED", { factKey: f.key, rung: f.confirmedRung });
             tt_tableProgressEvents(eng, f);
             if (eng.session) eng.session.factsImproved[f.key] = true;
-            if (f.inFlux && f.confirmedRung >= 2) { f.inFlux = false; tt_updateLearningRate(eng, f); }
+            if (f.inFlux && f.confirmedRung >= TT_C.WIP_EXIT_RUNG) { f.inFlux = false; tt_updateLearningRate(eng, f); }   // h24: R3 (was R2)
           }
           if (wasPlaced) {
             // confirm-IN-PLACE: coloured at the seeded rung, NOT promoted past it. Reset hits so the next
@@ -2846,6 +3239,7 @@ function tt_recordAnswerCore(eng, d, correct, rtMs, age) {
   } else {
     // error (§7) — routed by whether it landed on the frontier or a T6 lower-rung ask.
     f.rungHits = 0; f.rungProvisional = false;
+    f.reconfirmHits = 0;   // h24: a wrong restarts the × re-confirm after an early bridge fail
     f.placed = false;   // h6: a wrong answer makes the placement estimate suspect → re-earn the rung normally
     if (d.flags.maintenance && d.rung < f.rung) {
       // T6 (h-user): an error on a LOWER-rung maintenance ask is ordinary evidence but
@@ -2942,12 +3336,13 @@ function tt_getFactStates(eng) {
     var f = eng.facts[key];
     out.push({
       key: f.key, a: f.a, b: f.b, introIdx: f.introIdx,
-      seen: f.seen, inFlux: f.inFlux, phase: tt_phase(eng, f),
+      seen: f.seen, inFlux: f.inFlux, unchecked: !!f.unchecked, phase: tt_phase(eng, f),
+      creditForms: tt_creditForms(f),   // h24: Pairs credit (a right harder-form answer = one hit at the working rung)
       rung: f.rung, confirmedRung: f.confirmedRung, fluentRung: f.fluentRung || 0,
       reinforceLeft: f.reinforceLeft, dueAtTs: f.dueAtTs, bridge: f.bridge,
       lastAskedAtQ: f.lastAskedAtQ,
       // h18: sitting at the R4→R5 gate, ready to cross — Pairs' ÷ stretch (tt_stretchOpenBridge)
-      bridgeReady: f.rung === 4 && tt_bridgeEligible(eng, f),
+      bridgeReady: f.rung === 4 && tt_bridgeEligible(eng, f) && !tt_firstSession(eng),   // h24: no bridge in session 1
     });
   }
   return out;
@@ -2995,6 +3390,7 @@ function tt_tileOptions(eng, d, rng) {
 //               empty-pool fallback; without it the warm-up never ends and nothing is introduced)
 function tt_classCNext(eng, sessionCtx, rng, opts) {
   opts = opts || {};
+  eng._sessionFocusTables = tt_modeInfo(sessionCtx.mode).tables;   // h24: the tile table honours the scope (tt_tileTable)
   if (eng.battery) {
     var bd = tt_tileOptions(eng, tt_batteryDescriptor(eng, eng.facts[eng.battery.key], eng.battery, rng), rng);
     tt_markServed(eng, bd, sessionCtx);
@@ -3008,7 +3404,9 @@ function tt_classCNext(eng, sessionCtx, rng, opts) {
   var bl = tt_maybeLaunchBridge(eng, sessionCtx, rng);
   if (bl) { tt_tileOptions(eng, bl, rng); tt_markServed(eng, bl, sessionCtx); return bl; }
   if (tt_introAllowed(eng, tt_effectiveWip(eng), { force: !!opts.force })) {
-    var nf = tt_nextIntroFact(eng, sessionCtx);
+    var it = tt_nextIntroItem(eng, sessionCtx, { tile: true });   // h24: a TILE check or a new fact
+    if (it && it.check) return tt_tileOptions(eng, tt_serveCheck(eng, it.f, sessionCtx, rng), rng);
+    var nf = it && it.f;
     if (nf) {
       var d = tt_serveIntro(eng, nf, sessionCtx, rng);   // served + introduced (seen, R1, inFlux)
       // Pop needs bubbles: the R1 full-table set (the gentlest), oriented to match it.
@@ -3059,18 +3457,24 @@ function tt_probeBoardAbandon(eng) {
 // the full gate; the rest of the batch share its spacing (waiveGap) but each still needs WIP
 // room. `tables` (optional) keeps them on the board's chosen tables; otherwise the session
 // scope applies, as in tt_nextIntroFact. Nothing changes until tt_introduceKey.
-function tt_introCandidates(eng, sessionCtx, max, tables, force) {
+// h24 (brief §7): a candidate may be a CHECK — an unchecked seeded fact whose seeded form matches the
+// board (`form`); the skin tells them apart by tt_getFactStates .unchecked and shows a check as an
+// ordinary recordable card. New facts and checks alternate, as in the drill (tt_nextIntroItem).
+function tt_introCandidates(eng, sessionCtx, max, tables, force, form) {
   var mi = tt_modeInfo(sessionCtx.mode), effWip = tt_effectiveWip(eng), out = [];
   var lists = [];
   if (tables && tables.length) lists.push(tables);
   else if (mi.kind !== "any") { lists.push(mi.tables); if (mi.kind === "mainly") lists.push(null); }
   else lists.push(null);
+  var run = eng.introNewRun || 0;
   for (var li = 0; li < lists.length && !out.length; li++) {
-    for (var i = 0; i < eng.introOrder.length && out.length < max; i++) {
-      var f = eng.facts[eng.introOrder[i]];
-      if (f.seen || (lists[li] && !tt_involves(f, lists[li]))) continue;
+    var ctx = { mode: lists[li] ? { only: lists[li] } : "any", nowTs: sessionCtx.nowTs };
+    while (out.length < max) {
+      var it = tt_nextIntroItem(eng, ctx, { tile: true, form: form || null, skip: out, newRun: run });
+      if (!it) break;
       if (!tt_introAllowed(eng, effWip, { extra: out.length, waiveGap: out.length > 0, force: !!force })) return out;
-      out.push(f.key);
+      out.push(it.f.key);
+      run = it.check ? 0 : run + 1;
     }
   }
   return out;
@@ -3089,7 +3493,7 @@ function tt_introduceKey(eng, key, sessionCtx, rng) {
 // answer is never reported (a child challenging themselves isn't punished).
 function tt_stretchOpenBridge(eng, key) {
   var f = eng.facts[key];
-  if (!f || f.rung !== 4 || !tt_bridgeEligible(eng, f)) return false;
+  if (!f || f.rung !== 4 || !tt_bridgeEligible(eng, f) || tt_firstSession(eng)) return false;   // h24: not in session 1
   if (eng.battery && eng.battery.key === key) eng.battery = null;
   tt_openBridge(eng, f);
   tt_noteAchievement(eng, f);
@@ -3298,7 +3702,7 @@ function tt_deserialize(json) {
     data.spacedReasks = data.nextSessionReasks.map(function (key) { return { key: key, dueAtTs: (data.lastAnswerTs || 0) + TT_C.ERROR_REASK3_GAP_MS }; });
   }
   delete data.nextSessionReasks; delete data.arc; delete data.arcSeq;
-  for (var hk in data.facts) delete data.facts[hk].bridgeRetriggeredArc;
+  for (var hk in data.facts) { delete data.facts[hk].bridgeRetriggeredArc; delete data.facts[hk].bridgeDivFlip; }   // h24: ÷ stage no longer alternates
   var eng = tt_newEngine(data.config);
   for (var k in data) if (k !== "config") eng[k] = data[k];
   // commutativity §2: backfill gate trackers for pre-commutativity saves — grandfather anything
@@ -3309,6 +3713,14 @@ function tt_deserialize(json) {
     if (!ff.r7Missing) ff.r7Missing = { a: ff.confirmedRung >= 8, b: ff.confirmedRung >= 8 };   // h18 grandfather
     if (!ff.r8Dirs) { var m8 = ff.confirmedRung >= 8 && (ff.fluentRung || 0) >= 8; ff.r8Dirs = { a: m8, b: m8 }; }
   }
+  // h24 (Kath Q9): WIP_CAP_DEFAULT 5→6. A save made before h24 on the old default moves to 6 ONCE; the
+  // marker stops a cap set to 5 later from being moved again.
+  if (!eng.rollingWip) eng.rollingWip = [];   // h24: saves made before the WIP accuracy figure
+  if (!eng.divRecent) eng.divRecent = [];     // h24: bridge precursor signals on pre-h24 saves
+  if (eng.child.bridgeCleanEver == null) eng.child.bridgeCleanEver = eng.child.bridgeCleanPasses || 0;
+  for (var pk in eng.facts) delete eng.facts[pk].divEasyNext;   // h24: retired with auto-open
+  delete eng.bandClosed;   // h24: a latch that briefly existed in this session's shell saves — no longer read
+  if (!data.wipCapH24) { if (eng.child.wipCap === 5) eng.child.wipCap = 6; eng.wipCapH24 = true; }   // data: tt_newEngine's own marker is always set
   eng.schemaVersion = 2;
   eng._handlers = [];
   eng.eventLog = [];
@@ -3329,7 +3741,8 @@ if (typeof module !== "undefined" && module.exports) {
     tt_getScore: tt_getScore, tt_getChildStats: tt_getChildStats, tt_getInferences: tt_getInferences,
     tt_serialize: tt_serialize, tt_deserialize: tt_deserialize,
     tt_inFluxCount: tt_inFluxCount, tt_effectiveWip: tt_effectiveWip, tt_challengeIndex: tt_challengeIndex,
-    tt_phase: tt_phase, tt_fastBar: tt_fastBar, tt_describe: tt_describe, tt_buildAsk: tt_buildAsk, tt_tableWindow: tt_tableWindow,
+    tt_phase: tt_phase, tt_weight: tt_weight, tt_weightParts: tt_weightParts, tt_bandHealthy: tt_bandHealthy, tt_precursorAllowed: tt_precursorAllowed, tt_precursorReasons: tt_precursorReasons, tt_boredBand: tt_boredBand, tt_rollingWipAcc: tt_rollingWipAcc,
+    tt_introGate: tt_introGate, tt_poolExclusion: tt_poolExclusion, tt_firstSession: tt_firstSession, tt_nextIntroItem: tt_nextIntroItem, tt_fastBar: tt_fastBar, tt_describe: tt_describe, tt_buildAsk: tt_buildAsk, tt_tableWindow: tt_tableWindow,
     tt_bothOrders: tt_bothOrders, tt_bothDivDirs: tt_bothDivDirs, tt_bothMissing: tt_bothMissing,
     tt_factDifficulty: tt_factDifficulty, tt_introGroupOfFact: tt_introGroupOfFact,
     tt_tableStarted: tt_tableStarted, tt_introFrontierTable: tt_introFrontierTable,
@@ -3995,7 +4408,7 @@ function ttMountScaffold(el) {
     // too-tall panel shrinks UP into view (center-origin would push its bottom out).
     wrap.style.transformOrigin = "center top";
     wrap.style.transform = s < 1 ? "scale(" + s + ")" : "";
-    // h22: the OK sits just under the card AS DRAWN (scaled), not at the slot's foot — a small caption in a tall
+    // h21: the OK sits just under the card AS DRAWN (scaled), not at the slot's foot — a small caption in a tall
     // slot would otherwise leave it stranded far below. Capped so it never leaves the slot.
     if (okEl) okEl.style.bottom = "auto";
     if (okEl) okEl.style.top = Math.round(Math.min(wrap.offsetTop + h * s + 6, el.clientHeight - okEl.offsetHeight - 12)) + "px";
@@ -4028,9 +4441,9 @@ function ttMountScaffold(el) {
         el.appendChild(noteEl);
       }
       el.appendChild(wrap);
-      // h22: the card GROWS after show() (the caption/array animate in), so watch it too — the OK is placed from its size.
+      // h21: the card GROWS after show() (the caption/array animate in), so watch it too — the OK is placed from its size.
       if (slotObserver) { slotObserver.disconnect(); slotObserver.observe(el); slotObserver.observe(wrap); }
-      // info.onOk (h22, Kath): after a Help me out / Show me / correction the child needs a visible way to
+      // info.onOk (h21, Kath): after a Help me out / Show me / correction the child needs a visible way to
       // carry on. OK takes the scaffold away so the box is simply there to type in. Full size, OUTSIDE the
       // scaled wrap (like the note), so it stays a finger target on a shrunk card.
       if (info.onOk) {
@@ -4281,10 +4694,22 @@ var TT_PAIRS_RT = 60000;
 // a card is exposure only (never recorded), so this only has to produce a
 // well-formed ask of the right shape.
 var TT_PAIRS_SHOW_RUNG = { x: 3, q: 4, div: 5 };
+var TT_PAIRS_MIN_PROGRESS = 3;   // h24 (Kath, (d)): ≥ this many progressable cards on a ? or ÷ board, when they exist
 
-// Setup-strip op id → the engine's rung form.
+// Setup-strip op id → the engine's rung form. h24: op "auto" = "Pairs: game chooses question style" — no board
+// form; each card takes its fact's own form (null here).
 function ttPairsFormOf(op) {
-  return op === "div" ? "division" : op === "q" ? "missingFactor" : "product";
+  return op === "auto" ? null : op === "div" ? "division" : op === "q" ? "missingFactor" : "product";
+}
+// h24: form → the op whose orientation script fits it (ttPairsOrientSeq), for a per-card form in "auto" mode.
+function ttPairsOpOfForm(form) { return form === "division" ? "div" : form === "missingFactor" ? "q" : "x"; }
+// h24: in "auto" mode the rung a fact is SHOWN at — its own tile rung, or a keypad rung's same-form tile rung
+// (R6 × → R3, R7 ? → R4, R8 ÷ → R5), as Pop does (ttPopShowRung); an unseen top-up → R1.
+function ttPairsAutoRung(s, rungSpecs) {
+  if (!s.seen) return 1;
+  var spec = rungSpecs[s.rung] || {};
+  if (spec.opts && spec.opts !== "intro") return s.rung;
+  return spec.form === "division" ? 5 : spec.form === "missingFactor" ? 4 : 3;
 }
 
 // --- the evidence gate ------------------------------------------------------
@@ -4295,16 +4720,24 @@ function ttPairsFormOf(op) {
 // bridge-gated by the engine, so "no ÷ evidence before the bridge" is automatic.
 function ttPairsRecordable(s, op, rungSpecs) {
   if (!s.seen) return false;                       // rule 3: top-ups are exposure only
+  if (s.unchecked) return false;                   // h24: a seeded fact records only AS its check (an intro candidate)
   var spec = rungSpecs[s.rung];
   if (!spec || spec.opts === null || spec.opts === "intro") return false;
-  return spec.form === ttPairsFormOf(op);
+  return op === "auto" || spec.form === ttPairsFormOf(op);   // h24: "auto" — every tile-rung fact records at its own form
 }
 
 // h18 ÷ stretch (Kath): in a ÷ board, a fact sitting at R4 and ready to cross the
 // bridge (tt_getFactStates .bridgeReady) is a STRETCH card. A correct first-half
 // first-attempt match opens its bridge; a wrong one records nothing.
 function ttPairsStretch(s, op) {
-  return op === "div" && !!s.seen && !!s.bridgeReady;
+  return (op === "div" || op === "auto") && !!s.seen && !!s.bridgeReady;   // h24: "auto" — bridge-ready facts come as ÷ stretch
+}
+// h24 (Kath): a CREDIT card — a WIP or unchecked fact shown in a HARDER form than its working rung (the engine
+// decides who qualifies: tt_getFactStates .creditForms). A right first-half first-attempt match counts as one hit
+// at its working rung (and passes an unchecked fact's check); a wrong one records nothing.
+function ttPairsCredit(s, op) {
+  var form = ttPairsFormOf(op);   // h24: "auto" has no board form — every card is in its own form, so no credit
+  return !!(form && s.seen && s.creditForms && s.creditForms[form]);
 }
 
 // Rules 1 and 2 — first attempt on this question card, first half of the board.
@@ -4363,8 +4796,9 @@ function ttPairsRank(states, opts) {
     // Within a tier, facts Pairs can actually record for go first (Kath's "prefer
     // bridged" for ÷, generalised to all three forms — design §5.1).
     // h18: a ÷ stretch card counts as "can record" here — Kath: "allow the choice".
-    var rp = (ttPairsRecordable(p, op, specs) || ttPairsStretch(p, op)) ? 0 : 1;
-    var rq = (ttPairsRecordable(q, op, specs) || ttPairsStretch(q, op)) ? 0 : 1;
+    // h24: a CREDIT card (a WIP/unchecked fact in a harder form) counts too — it keeps the board advancing.
+    var rp = (ttPairsRecordable(p, op, specs) || ttPairsStretch(p, op) || ttPairsCredit(p, op)) ? 0 : 1;
+    var rq = (ttPairsRecordable(q, op, specs) || ttPairsStretch(q, op) || ttPairsCredit(q, op)) ? 0 : 1;
     if (rp !== rq) return rp - rq;
     // "In flight" means PRACTISED, not merely introduced. Placement seeds a large
     // block of facts at once (measured h13: a 16-question start left all 78 seen
@@ -4417,16 +4851,39 @@ function ttPairsPlan(states, opts) {
   var op = opts.op, specs = opts.rungSpecs, n = opts.n || TT_PAIRS_N;
   var ranked = ttPairsRank(states, opts), plan = [];
   var skip = opts.exclude || [];                    // h18: facts already on the board as intro cards
-  for (var i = 0; i < ranked.length && plan.length < n; i++) {
-    var s = ranked[i], rec = ttPairsRecordable(s, op, specs);
-    if (skip.indexOf(s.key) >= 0) continue;
-    plan.push({
-      key: s.key, a: s.a, b: s.b,
-      rung: rec ? s.rung : TT_PAIRS_SHOW_RUNG[op],
+  function entry(s) {
+    var rec = ttPairsRecordable(s, op, specs), str = ttPairsStretch(s, op) && (op === "auto" || !rec);
+    if (str) rec = false;   // h24: in "auto" a bridge-ready fact is offered ÷ (its stretch), not its R4 ? form
+    var rung = rec ? s.rung : str ? 5 : op === "auto" ? ttPairsAutoRung(s, specs) : TT_PAIRS_SHOW_RUNG[op];
+    var cardOp = op === "auto" ? ttPairsOpOfForm((specs[rung] || {}).form) : op;
+    return {
+      key: s.key, a: s.a, b: s.b, rung: rung,
       recordable: rec,
-      stretch: !rec && ttPairsStretch(s, op),
-      orient: ttPairsOrientSeq(op, s.a, s.b, ttPairsOrientTable(s.a, s.b, opts.tables)),
-    });
+      stretch: str,
+      credit: !rec && !str && ttPairsCredit(s, op),
+      orient: ttPairsOrientSeq(cardOp, s.a, s.b, ttPairsOrientTable(s.a, s.b, opts.tables)),
+    };
+  }
+  for (var i = 0; i < ranked.length && plan.length < n; i++) {
+    if (skip.indexOf(ranked[i].key) >= 0) continue;
+    plan.push(entry(ranked[i]));
+  }
+  // h24 (Kath) (d): a ? or ÷ board keeps at least TT_PAIRS_MIN_PROGRESS cards that can move a fact on at that form
+  // (at-rung facts + ÷ stretch) when that many exist — else WIP × facts (tier 1) fill it and a strong child
+  // choosing ? / ÷ gets nothing to progress. The lowest-ranked other cards make way.
+  if (op === "q" || op === "div") {
+    var prog = function (p) { return p.recordable || p.stretch; };
+    var have = plan.filter(prog).length;
+    for (var j = 0; j < ranked.length && have < TT_PAIRS_MIN_PROGRESS; j++) {
+      var c = ranked[j];
+      if (skip.indexOf(c.key) >= 0 || plan.some(function (p) { return p.key === c.key; })) continue;
+      var e = entry(c); if (!prog(e)) continue;
+      var out = -1;
+      for (var k = plan.length - 1; k >= 0; k--) if (!prog(plan[k])) { out = k; break; }
+      if (out < 0) { if (plan.length < n) plan.push(e); else break; }
+      else plan[out] = e;
+      have++;
+    }
   }
   return plan;
 }
@@ -4483,6 +4940,7 @@ if (typeof module !== "undefined" && module.exports) {
     ttPairsFormOf: ttPairsFormOf, ttPairsRecordable: ttPairsRecordable,
     ttPairsEvidenceOK: ttPairsEvidenceOK, ttPairsTier: ttPairsTier, ttPairsRank: ttPairsRank,
     ttPairsStretch: ttPairsStretch, ttPairsFirstHalfOK: ttPairsFirstHalfOK, ttPairsIntroText: ttPairsIntroText,
+    ttPairsCredit: ttPairsCredit, ttPairsAutoRung: ttPairsAutoRung, ttPairsOpOfForm: ttPairsOpOfForm, TT_PAIRS_MIN_PROGRESS: TT_PAIRS_MIN_PROGRESS,
     ttPairsOrientTable: ttPairsOrientTable, ttPairsOrientSeq: ttPairsOrientSeq, ttPairsRng: ttPairsRng,
     ttPairsPlan: ttPairsPlan, ttPairsCardText: ttPairsCardText, ttPairsShuffle: ttPairsShuffle,
     ttPairsDeal: ttPairsDeal, ttPairsGrid: ttPairsGrid, ttPairsResolve: ttPairsResolve,
@@ -4562,12 +5020,16 @@ var TT_PAIRS_ANIMALS = [
 // This project's difficulty groups (TT_GROUPS), NOT the exemplar's level sets.
 var TT_PAIRS_GROUPS = [[1, 2, 5, 10], [3, 4, 8, 11], [6, 7, 9, 12]];
 var TT_PAIRS_TABLES_UP_TO = 12;
-var TT_PAIRS_MATCH_MS = 350, TT_PAIRS_WRONG_MS = 650;
+var TT_PAIRS_MATCH_MS = 200, TT_PAIRS_WRONG_MS = 650;     // h22 (Kath): match hold 350 → 200 (the CSS fade is .2s too)
 
 function ttMakePairs(els) {
   var ctx = null, live = false;
   var op = null;                    // "x" | "q" | "div"
   var entries = [], firstPick = null, busy = false, matched = 0;
+  // h22: the pending settle() timer. A new board or leaving Pairs cancels it — fired late, it reset the NEW board's
+  // pick/busy and counted a match there ("1 of 12" with none found; the card picked meanwhile stuck selected).
+  var settleTimer = null;
+  function cancelSettle() { if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; } }
 
   // --- setup strip ---------------------------------------------------------
   (function buildOps() {
@@ -4616,6 +5078,11 @@ function ttMakePairs(els) {
   // pick FOR PAIRS ONLY (it never writes flow.setChildTables). Design §3.
   function syncScope() {
     var s = ctx.scope(), control = s.control;
+    // h24 (Kath): "Pairs question style" — child chooses (default: the op strip) or GAME chooses (op "auto": no strip,
+    // each card in its fact's own form, ttPairsPlan). Per player, saved with the adult scope.
+    var gameStyle = s.pairsStyle === "game";
+    if (els.ops.parentNode) els.ops.parentNode.style.display = gameStyle ? "none" : "";
+    if (gameStyle) op = "auto"; else if (op === "auto") op = null;
     els.tablesWrap.style.display = (control === "game") ? "none" : "";
     // h20: landscape phones show the chooser as a pop-up behind a "Tables" button (CSS decides
     // where the button is visible; this only says whether there is a chooser at all).
@@ -4679,13 +5146,24 @@ function ttMakePairs(els) {
     // empty-pool rule — else a fresh child's warm-up never ends and nothing is introduced).
     var full = ttPairsPlan(states, planOpts);
     var force = !full.some(function (p) { return p.recordable || p.stretch; });
-    var intros = ctx.introCandidates(2, tables, force);
+    var intros = ctx.introCandidates(2, tables, force, ttPairsFormOf(op));
     planOpts.n = TT_PAIRS_N - intros.length; planOpts.exclude = intros;
     var plan = ttPairsPlan(states, planOpts);
     entries = [];
     intros.forEach(function (key) {
+      // h24 (brief §7): a candidate may be the CHECK of a placement-seeded fact — an ordinary recordable
+      // card at its seeded rung (the engine's form filter matched it to this board), not a solved intro card.
+      var s = states.filter(function (x) { return x.key === key; })[0];
+      if (s && s.unchecked) {
+        var cop = op === "auto" ? ttPairsOpOfForm((ctx.rungSpecs[s.rung] || {}).form) : op;   // h24: "auto" — the seed's own form
+        var dc = ctx.describe(key, s.rung, ttPairsOrientSeq(cop, s.a, s.b, ttPairsOrientTable(s.a, s.b, tables)));
+        if (dc) entries.push({ d: dc, answer: dc.correctAnswer, qText: ttPairsCardText(ttQuestionView(dc)), recordable: true, stretch: false, attempted: false });
+        return;
+      }
+      // h24 (Kath): no solved cards — a new fact is a STANDARD card; a right match still introduces it (first contact,
+      // not evidence). Was ttPairsIntroText ("3 × 4 = 12").
       var d = ctx.describe(key, 1, []);
-      if (d) entries.push({ d: d, answer: d.correctAnswer, qText: ttPairsIntroText(ttQuestionView(d), d.correctAnswer),
+      if (d) entries.push({ d: d, answer: d.correctAnswer, qText: ttPairsCardText(ttQuestionView(d)),
         intro: true, recordable: false, attempted: false });
     });
     for (var i = 0; i < plan.length; i++) {
@@ -4693,7 +5171,7 @@ function ttMakePairs(els) {
       if (!d) continue;
       entries.push({
         d: d, answer: d.correctAnswer, qText: ttPairsCardText(ttQuestionView(d)),
-        recordable: p.recordable, stretch: !!p.stretch, attempted: false
+        recordable: p.recordable, stretch: !!p.stretch, credit: !!p.credit, attempted: false
       });
     }
     if (!entries.length) { hint("No questions available yet — try the drill first."); return; }
@@ -4713,6 +5191,7 @@ function ttMakePairs(els) {
   if (LANDSCAPE) { if (LANDSCAPE.addEventListener) LANDSCAPE.addEventListener("change", shapeGrid); else if (LANDSCAPE.addListener) LANDSCAPE.addListener(shapeGrid); }
 
   function deal() {
+    cancelSettle();
     firstPick = null; busy = false; matched = 0;
     els.done.textContent = "";
     var animal = TT_PAIRS_ANIMALS[Math.floor(Math.random() * TT_PAIRS_ANIMALS.length)];
@@ -4763,6 +5242,8 @@ function ttMakePairs(els) {
       // its bridge on a correct match; an intro card introduces when matched.
       if (entry.probe) { if (ttPairsFirstHalfOK(res, entry, matched, n)) ctx.record(entry.d, res.match); }
       else if (entry.stretch) { if (res.match && ttPairsFirstHalfOK(res, entry, matched, n)) ctx.stretch(entry.d.factKey); }
+      // h24 (Kath): a credit card — only a RIGHT first-half first-attempt match is recorded (one hit at the working rung)
+      else if (entry.credit) { if (res.match && ttPairsFirstHalfOK(res, entry, matched, n)) { entry.d.flags.creditUp = true; ctx.record(entry.d, true); } }
       else if (ttPairsEvidenceOK(res, entry, matched, n)) ctx.record(entry.d, res.match);
       if (entry.intro && res.match) ctx.introduce(entry.d.factKey);
       entry.attempted = true;
@@ -4774,8 +5255,11 @@ function ttMakePairs(els) {
 
   function settle(secondEl, isMatch) {
     var a = firstPick.el, b = secondEl;
-    if (!isMatch) { a.classList.add("wrong"); b.classList.add("wrong"); }
-    setTimeout(function () {
+    // h22 (Kath): a match shows green (like a miss shows red); "right" stays on while the pair fades out
+    if (isMatch) { a.classList.add("right"); b.classList.add("right"); }
+    else { a.classList.add("wrong"); b.classList.add("wrong"); }
+    settleTimer = setTimeout(function () {
+      settleTimer = null;
       a.classList.remove("sel", "wrong"); b.classList.remove("sel", "wrong");
       if (isMatch) {
         a.classList.add("matched"); b.classList.add("matched");
@@ -4791,6 +5275,7 @@ function ttMakePairs(els) {
 
   function reset() {
     closeProbe(false);                                 // leaving mid probe board: the placement stays owed
+    cancelSettle();
     entries = []; firstPick = null; busy = false; matched = 0;
     cardCount = 0;
     els.grid.innerHTML = ""; els.img.removeAttribute("src"); els.img.alt = ""; els.img.style.objectPosition = "";
@@ -4857,7 +5342,7 @@ var TT_POP_TOP = 3;
 // Keypad rungs (R6–R8) can still be SHOWN (if needed) but never record —
 // popping a bubble is recognition, not recall.
 function ttPopRecordable(s, specs) {
-  if (!s || !s.seen) return false;
+  if (!s || !s.seen || s.unchecked) return false;   // h24: a seeded fact records only AS its check (engine-directed)
   var spec = specs[s.rung];
   return !!spec && spec.opts !== null && spec.opts !== "intro";
 }
@@ -6162,7 +6647,7 @@ if (typeof module !== "undefined" && module.exports) {
 // ============================================================================
 // tt_skin_builder_play.js — Game 5 "Reef Builder": the DOM/canvas player
 // ----------------------------------------------------------------------------
-// ONE screen (Kath h22): the reef is on screen WHILE questions are answered. The flow shows the
+// ONE screen (Kath h21): the reef is on screen WHILE questions are answered. The flow shows the
 // ordinary Quiz play screen (#ttPlay) in "builder mode"; this player fills the dock at its top:
 // pearls, the current fact's 8 pips, a Shop button, the reef canvas, the rearranging bar, the tray.
 // It holds no engine reference (D2): facts come through ctx.factStates(), the per-player record
@@ -6235,7 +6720,7 @@ var TT_BD_DRAW = (function () {
     clam: function (c, t) { var o = .35 + (Math.sin(t * 1.2) + 1) * .18; c.beginPath(); c.ellipse(0, -4, 18, 10, 0, 0, Math.PI); c.fillStyle = "#c96a8a"; c.fill();
       var pg = c.createRadialGradient(0, -8, 1, 0, -8, 14); pg.addColorStop(0, "rgba(255,255,255,.95)"); pg.addColorStop(1, "rgba(255,255,255,0)"); c.fillStyle = pg; c.beginPath(); c.arc(0, -8, 14, 0, TAU); c.fill();
       el(c, 0, -7, 5, 5, "#f4efe6"); c.save(); c.translate(-18, -4); c.rotate(-o); c.beginPath(); c.ellipse(18, 0, 18, 10, 0, Math.PI, TAU); c.fillStyle = "#e07a9a"; c.fill(); c.restore(); },
-    // h22: the two gifts for the 11s and 12s (not in the prototype)
+    // h21: the two gifts for the 11s and 12s (not in the prototype)
     manta: function (c, t) { var f = Math.sin(t * 2.2) * 4;     // seen from above: wide wings, flapping
       c.beginPath(); c.moveTo(18, 0); c.bezierCurveTo(10, -10, 2, -22, -8, -27 + f); c.bezierCurveTo(-5, -15, -9, -6, -14, 0);
       c.bezierCurveTo(-9, 6, -5, 15, -8, 27 - f); c.bezierCurveTo(2, 22, 10, 10, 18, 0); c.closePath();
@@ -6301,7 +6786,7 @@ var TT_BD_STRUCT = (function () {
 var TT_BD_BB = { 2: [-80, 82, -120, 0], 3: [-118, 40, -230, 0], 4: [-54, 54, -98, 0], 5: [-26, 28, -125, 0] };
 
 // ============================================================================
-// the REEF BUILDER — ONE screen (Kath h22): the reef sits ABOVE the ordinary Quiz play elements
+// the REEF BUILDER — ONE screen (Kath h21): the reef sits ABOVE the ordinary Quiz play elements
 // (question, input, scaffold, help), all on screen at once. The flow shows #ttPlay in "builder
 // mode" and this player fills the dock at its top. The drill underneath is unchanged.
 // ============================================================================
@@ -6313,7 +6798,7 @@ function ttMakeBuilder(el) {
   var placing = null, drag = null, pointer = null, riseT = {}, octoUntil = 0, msgs = [], msgAge = 0;
   var factKey = null, popRung = 0;
   var bubbles = [], bubAcc = 0, bubLast = 0;
-  // Canvas mapping (h22, edge-to-edge reef): the scene is 480x360 UNITS; the canvas fills whatever box CSS gives it.
+  // Canvas mapping (h21, edge-to-edge reef): the scene is 480x360 UNITS; the canvas fills whatever box CSS gives it.
   // SC = device px per unit; E = extra open water ABOVE the scene (units) when the box is taller than 4:3;
   // OX = extra water at each SIDE (units) when it is wider. Saved positions stay in scene units, so they never move.
   var SC = 2, E = 0, OX = 0, ro = null;
@@ -6684,13 +7169,13 @@ function ttStartFlow(opts) {
   var current = null, renderTs = 0, submitLock = false;
   var entry = "";                      // the inline answer-box string; shared by keypad + physical keyboard
   var correctiveMode = false;          // §7 copy-to-proceed gate (scaffold shown; await the copy)
-  // h22 (Kath): every scaffold carries an OK. It takes the scaffold away (the gate stays: the child still types the
+  // h21 (Kath): every scaffold carries an OK. It takes the scaffold away (the gate stays: the child still types the
   // number), and a wrong try with the scaffold gone brings it back — they may simply have forgotten it.
   var lastScaffold = null, scaffoldDismissed = false;
   var renderCount = 0;                  // test seam: number of questions rendered (see qCount in the API)
   var HELP_RT = 999999;                // "help me out" reports a wrong answer with a slow rt (not fluent)
   var sessionLive = false, screen = null;
-  var builderMode = false;            // h22: Game 5 Reef Builder — the play screen with the reef dock above it (one screen)
+  var builderMode = false;            // h21: Game 5 Reef Builder — the play screen with the reef dock above it (one screen)
 
   // back target per screen; who (S0) is the root → no back. (S0 create-player = later.)
   var BACK = { who: null, select: "who", play: "select", pairs: "select", pop: "select", practice: "select", settings: "select", adult: "settings" };
@@ -6786,12 +7271,13 @@ function ttStartFlow(opts) {
 
   // D5 scope control — host sets {control, tables, strict}; applied at each play start.
   // h20 (Kath): PER PLAYER, like the range — persisted via opts.onScope, restored by selectPlayer.
-  function loadScope(s) { s = s || {}; scope = { control: s.control || "game", tables: (s.tables || []).slice(), strict: s.strict || "mainly" }; }
+  // h24 (Kath): + pairsStyle — "child" (default: the child picks Pairs' question style) | "game" (the engine does, per card).
+  function loadScope(s) { s = s || {}; scope = { control: s.control || "game", tables: (s.tables || []).slice(), strict: s.strict || "mainly", pairsStyle: s.pairsStyle === "game" ? "game" : "child" }; }
   function setScope(s) {
     loadScope(s);
     if (typeof opts.onScope === "function") opts.onScope(getScope());
   }
-  function getScope() { return { control: scope.control, tables: scope.tables.slice(), strict: scope.strict }; }
+  function getScope() { return { control: scope.control, tables: scope.tables.slice(), strict: scope.strict, pairsStyle: scope.pairsStyle || "child" }; }
   function applyScope() {                                              // pure: tt_scope.js
     var sc = { control: scope.control, tables: inRange(scope.tables), strict: scope.strict };
     var pk = { date: childPick.date, tables: inRange(childPick.tables) };
@@ -7017,7 +7503,8 @@ function ttStartFlow(opts) {
     probeBoardFinish: function () { var r = tt_probeBoardFinish(eng); persist(); return r; },
     probeBoardAbandon: function () { tt_probeBoardAbandon(eng); },
     // Pairs: up to `max` intro candidates (nothing changes) → introduce(key) when matched.
-    introCandidates: function (max, tables, force) { return tt_introCandidates(eng, sessionCtx, max, tables, force); },
+    // h24: `form` = the board's form, so a candidate may be a CHECK of a seeded fact (tt_getFactStates .unchecked).
+    introCandidates: function (max, tables, force, form) { return tt_introCandidates(eng, sessionCtx, max, tables, force, form); },
     introduce: function (key) { sessionCtx.nowTs = Date.now(); var d = tt_introduceKey(eng, key, sessionCtx, rng); persist(); return d; },
     // Pairs ÷ stretch: a correct first-half ÷ match on a bridge-ready R4 fact opens its bridge.
     stretch: function (key) { var r = tt_stretchOpenBridge(eng, key); persist(); return r; },
@@ -7230,7 +7717,7 @@ if (typeof module !== "undefined" && module.exports) {
 
   function loadChildPick(id) { try { var s = localStorage.getItem("tt_childpick_" + id); if (s) return JSON.parse(s); } catch (_) {} return { date: null, tables: [] }; }
   // h20: the adult's table scope is per player (default: the game decides).
-  function loadScope(id) { try { var s = localStorage.getItem("tt_scope_" + id); if (s) return JSON.parse(s); } catch (_) {} return { control: "game", tables: [], strict: "mainly" }; }
+  function loadScope(id) { try { var s = localStorage.getItem("tt_scope_" + id); if (s) return JSON.parse(s); } catch (_) {} return { control: "game", tables: [], strict: "mainly", pairsStyle: "child" }; }
 
   // Game 3 drill scaffolding: controller (tt_skin_drill) over the DOM panel (tt_panels).
   var ttScaffold = ttMakeScaffoldController(ttMountScaffold(ttEl("ttScaffold")));
@@ -7437,11 +7924,13 @@ if (typeof module !== "undefined" && module.exports) {
   Array.prototype.forEach.call(document.querySelectorAll('input[name="range"]'), function (r) { r.addEventListener("change", syncRangeChips); });
   function scopeControlValue() { var r = document.querySelector('input[name="scope"]:checked'); return r ? r.value : "game"; }
   function strictValue() { var r = document.querySelector('input[name="strict"]:checked'); return r ? r.value : "mainly"; }
+  function pairsStyleValue() { var r = document.querySelector('input[name="pairsStyle"]:checked'); return r ? r.value : "child"; }
   function selectedTables() { return Array.prototype.map.call(document.querySelectorAll("#ttChips .tt-chip.sel"), function (c) { return +c.dataset.t; }); }
   function syncScopeUI() {
     var s = flow.getScope();
     (document.querySelector('input[name="scope"][value="' + s.control + '"]') || {}).checked = true;
     (document.querySelector('input[name="strict"][value="' + s.strict + '"]') || {}).checked = true;
+    (document.querySelector('input[name="pairsStyle"][value="' + (s.pairsStyle || "child") + '"]') || {}).checked = true;
     Array.prototype.forEach.call(document.querySelectorAll("#ttChips .tt-chip"), function (c) { c.classList.toggle("sel", s.tables.indexOf(+c.dataset.t) >= 0); });
     ttEl("ttAdultTables").style.display = (s.control === "adult") ? "" : "none";
     (document.querySelector('input[name="range"][value="' + flow.getRange() + '"]') || {}).checked = true;
@@ -7452,7 +7941,7 @@ if (typeof module !== "undefined" && module.exports) {
   });
   ttEl("ttAdultApply").onclick = function () {
     if (rangeValue() !== flow.getRange()) flow.setRange(rangeValue());   // only a CHANGE counts as the adult's choice
-    flow.setScope({ control: scopeControlValue(), tables: selectedTables(), strict: strictValue() });
+    flow.setScope({ control: scopeControlValue(), tables: selectedTables(), strict: strictValue(), pairsStyle: pairsStyleValue() });
     flow.goSelect();
   };
 </script>
