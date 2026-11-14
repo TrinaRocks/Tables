@@ -906,6 +906,12 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
   #ttPlay.tt-bd-on { gap:4px clamp(10px, 2.4vw, 28px); }
   #ttPlay.tt-bd-on .tt-tiles { gap:5px; }
   #ttPlay.tt-bd-on .tt-tiles.tt-tiles-many { gap:5px; }
+  /* T20: a reward line runs to two lines, and it arrives with the Done bar: here it shares that row (the Done bar drops its words) so the column does not grow into Help */
+  #ttPlay.tt-bd-on > .tt-bd-over { flex-direction:row; flex-wrap:wrap; align-items:center; }
+  .tt-bd-over > * { flex:1 1 100%; min-width:0; }
+  .tt-bd-note { flex:1 1 0; font-size:12px; text-align:left; }
+  .tt-bd-note:not(:empty) + .tt-bd-edit { flex:none; width:auto; }
+  .tt-bd-note:not(:empty) + .tt-bd-edit > div { display:none; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tt-bd-pips i.pop { animation:none; }
@@ -950,7 +956,7 @@ body.tt-pop-on .tt-back, body.tt-pop-on .tt-player-badge { position:fixed; }
     <button id="ttSettingsDone" class="tt-choice" type="button">Games</button>
     <button id="ttAdultLink" class="tt-subtle" type="button">adult settings</button>
     <!-- h20 (Kath): which build is loaded — quote it with device reports. Filled by build.sh. -->
-    <div class="tt-build-stamp">build 4bfbd5 · 2026-10-26 17:38</div>
+    <div class="tt-build-stamp">build e55c02 · 2026-11-06 17:30</div>
   </section>
 
   <section id="ttAdult" class="tt-screen" style="display:none">
@@ -6459,14 +6465,18 @@ function ttMakePractice(el) {
 // practises in the ordinary Quiz drill (Class D — full evidence, keypad rungs included); the
 // reef is a REWARD LAYER over the engine's own progress, never a second mastery store (D1/D2):
 //   • pearls   — paid when a fact's CONFIRMED rung goes up (R1..R8; tile rungs 1, keypad rungs 2)
-//   • a table  — complete when every fact of it is confirmed at R6+ (keypad recall begins):
-//                tables 2–5 build a structure, 6–12 give a creature (tray, then placed by hand)
+//   • a table  — T20 reward ladder, each step once (`given`): every live fact confirmed ≥ R3 → its
+//                structure; ≥ R6 → its pet / special; R8 → 50 pearls. Reaching a step pays every
+//                unpaid step below it, in order, so the structure is never bypassed.
 //   • the reef — pearls, bought + gifted pieces, their positions: one record PER PLAYER, host-stored
 // Rewards are RECONCILED from the engine's current state (tt_getFactStates), so progress made in
 // Quiz / Pairs / Pop counts too, and a Builder player's first visit catches up on everything earned.
-// `paid` is a per-fact HIGH-WATER mark: a demotion never claws pearls back and re-climbing never
-// pays twice (no farming). `done` is sticky: a table already completed stays completed if the
-// range later grows (12) and adds facts to it.
+// `paid` is a per-fact HIGH-WATER mark: a demotion never claws pearls back. T20 recovery: `low` holds the
+// lowest rung seen since the fact fell below `paid`; reconfirming back to `paid` pays that climb again,
+// every time (Kath h25: a little farming is accepted). `given` is sticky: a step already paid stays paid
+// if the range later grows (12) and adds facts to the table.
+// T22: every game's session adds a bonus (questions div 10) — paid at once on leaving the Reef, otherwise
+// held in `pendQ` until the next Reef visit (which clears it, remainder included).
 // The DOM/canvas player is tt_skin_builder_play.js.
 // ============================================================================
 
@@ -6476,23 +6486,45 @@ var TT_BUILDER_MAX_RUNG = 8;
 var TT_BUILDER_W = 480, TT_BUILDER_H = 360;                 // scene units
 var TT_BUILDER_FT = Math.round(TT_BUILDER_H * 0.6);         // top of the floor band
 
-// Tables 2–5 build a big structure at a fixed anchor [x, y] (base-centre). name = child-facing.
+// Every table 2–12 has its "structure", sized by intro group (TT_GROUPS). g0/g1 are rock built at a fixed
+// anchor [x, y] (base-centre) and draggable; name = child-facing.
 var TT_BUILDER_STRUCTS = {
-  2: { name: "home cave",    anchor: [84, TT_BUILDER_H] },
-  3: { name: "overhang",     anchor: [440, TT_BUILDER_H] },
-  4: { name: "rock arch",    anchor: [292, TT_BUILDER_FT + 2] },
-  5: { name: "lantern rock", anchor: [190, TT_BUILDER_FT + 4] },
+  2:  { name: "home cave",    anchor: [84, TT_BUILDER_H] },
+  3:  { name: "overhang",     anchor: [440, TT_BUILDER_H] },
+  4:  { name: "rock arch",    anchor: [292, TT_BUILDER_FT + 2] },
+  5:  { name: "lantern rock", anchor: [190, TT_BUILDER_FT + 4] },
+  10: { name: "rock shelter", anchor: [70, TT_BUILDER_FT + 6] },
+  8:  { name: "rock table",   anchor: [250, TT_BUILDER_H - 20] },
+  11: { name: "window rock",  anchor: [365, TT_BUILDER_H - 10] },
 };
-// Tables 6–12 give a creature / piece (goes to the tray; the child places it).
-var TT_BUILDER_GIFTS = {
-  6:  { id: "seahorse", name: "Seahorse" },
-  7:  { id: "jelly",    name: "Jellyfish" },
-  8:  { id: "turtle",   name: "Turtle" },
-  9:  { id: "ship",     name: "Sunken ship" },
-  10: { id: "clam",     name: "Pearl clam" },
-  11: { id: "manta",    name: "Manta ray" },
-  12: { id: "whale",    name: "Whale" },
+// g2's structures are small PARTS: details that go to the tray and that the child fixes anywhere,
+// on the rock or in the open (kind "part"; Kath h25: "the child can decorate the reef themselves").
+var TT_BUILDER_PARTS = {
+  6:  { id: "ledge",    name: "rock ledge" },
+  9:  { id: "pillar",   name: "rock pillar" },
+  7:  { id: "crystals", name: "crystal cluster" },
+  12: { id: "mussels",  name: "mussel colony" },
 };
+// The R6 reward: a pet, or (special) a big piece. Not sold: they are the reward for tables.
+var TT_BUILDER_PETS = {
+  2:  { id: "fish",     name: "blue fish" },
+  5:  { id: "clown",    name: "clownfish" },
+  10: { id: "puffer",   name: "pufferfish" },
+  3:  { id: "seahorse", name: "seahorse" },
+  4:  { id: "jelly",    name: "jellyfish" },
+  11: { id: "manta",    name: "manta ray" },
+  8:  { id: "seal",     name: "seal" },
+  6:  { id: "dolphin",  name: "dolphin" },
+  12: { id: "whale",    name: "whale" },
+  9:  { id: "ship",     name: "sunken ship", special: 1 },
+  7:  { id: "clam",     name: "pearl clam",  special: 1 },
+};
+// No longer earned, but a saved reef may hold one (ttBuilderNormalize drops unknown types).
+var TT_BUILDER_RETIRED = { turtle: { name: "turtle", kind: "swim" } };
+var TT_BUILDER_TIER_RUNGS = [3, 6, 8];                      // the ladder: confirmed rung every live fact must reach
+var TT_BUILDER_R8_PEARLS = 50;
+var TT_BUILDER_START_PEARLS = 20;                           // a NEW reef only
+var TT_BUILDER_VERSION = 2;                                 // 2 = T20 ladder; a saved v1 reef catches up silently, once
 // The shop. Prices are pearls and never change; a fact pays up to 11 (sum of RUNG_PEARLS).
 var TT_BUILDER_CAT = [
   { id: "seagrass",    name: "Seagrass",       price: 8,  kind: "floor" },
@@ -6501,11 +6533,8 @@ var TT_BUILDER_CAT = [
   { id: "fan",         name: "Fan coral",      price: 18, kind: "floor" },
   { id: "starfish",    name: "Starfish",       price: 18, kind: "floor" },
   { id: "coralOrange", name: "Branch coral",   price: 18, kind: "floor" },
-  { id: "fish",        name: "Blue fish",      price: 25, kind: "swim" },
   { id: "anemone",     name: "Anemone",        price: 30, kind: "floor" },
-  { id: "clown",       name: "Clownfish",      price: 36, kind: "swim" },
   { id: "crab",        name: "Crab",           price: 36, kind: "floor" },
-  { id: "puffer",      name: "Pufferfish",     price: 50, kind: "swim" },
   { id: "chest",       name: "Treasure chest", price: 60, kind: "floor" },
   { id: "lantern",     name: "Glow coral",     price: 70, kind: "floor" },
 ];
@@ -6514,10 +6543,13 @@ var TT_BUILDER_CAT = [
 function ttBuilderItemDefs() {
   var d = {};
   TT_BUILDER_CAT.forEach(function (c) { d[c.id] = { id: c.id, name: c.name, kind: c.kind, price: c.price }; });
-  var swimmers = { seahorse: 1, jelly: 1, turtle: 1, manta: 1, whale: 1 };
-  Object.keys(TT_BUILDER_GIFTS).forEach(function (t) {
-    var g = TT_BUILDER_GIFTS[t]; d[g.id] = { id: g.id, name: g.name, kind: swimmers[g.id] ? "swim" : "floor", gift: +t };
+  Object.keys(TT_BUILDER_PETS).forEach(function (t) {
+    var p = TT_BUILDER_PETS[t]; d[p.id] = { id: p.id, name: p.name, kind: p.special ? "floor" : "swim", table: +t };
   });
+  Object.keys(TT_BUILDER_PARTS).forEach(function (t) {
+    var p = TT_BUILDER_PARTS[t]; d[p.id] = { id: p.id, name: p.name, kind: "part", table: +t };
+  });
+  Object.keys(TT_BUILDER_RETIRED).forEach(function (k) { d[k] = { id: k, name: TT_BUILDER_RETIRED[k].name, kind: TT_BUILDER_RETIRED[k].kind }; });
   Object.keys(TT_BUILDER_STRUCTS).forEach(function (t) {
     d["st" + t] = { id: "st" + t, name: TT_BUILDER_STRUCTS[t].name, kind: "big", table: +t };
   });
@@ -6527,13 +6559,14 @@ var TT_BUILDER_DEFS = ttBuilderItemDefs();
 
 // --- the per-player record ---------------------------------------------------
 function ttBuilderFresh() {
-  return { edit: false, lastPlaced: null, pearls: 0, placed: [], tray: [], nextId: 1, shelfSeed: 1, paid: {}, done: {} };
+  return { v: TT_BUILDER_VERSION, edit: false, lastPlaced: null, pearls: TT_BUILDER_START_PEARLS, placed: [], tray: [], nextId: 1, shelfSeed: 1, paid: {}, low: {}, given: {}, pendQ: 0 };
 }
 function _tbNum(v, d) { return typeof v === "number" && isFinite(v) ? v : d; }
 // Anything read from storage goes through here: wrong shapes fall back, unknown piece types are dropped.
 function ttBuilderNormalize(raw) {
   var st = ttBuilderFresh();
   if (!raw || typeof raw !== "object") return st;
+  st.v = Math.floor(_tbNum(raw.v, 1));                // no v = saved before T20; pearls below stay as saved
   st.edit = !!raw.edit;
   st.pearls = Math.max(0, Math.floor(_tbNum(raw.pearls, 0)));
   st.nextId = Math.max(1, Math.floor(_tbNum(raw.nextId, 1)));
@@ -6542,7 +6575,16 @@ function ttBuilderNormalize(raw) {
   if (raw.paid && typeof raw.paid === "object") for (var k in raw.paid) {
     var r = Math.floor(_tbNum(raw.paid[k], 0)); if (r > 0) st.paid[k] = Math.min(r, TT_BUILDER_MAX_RUNG);
   }
-  if (raw.done && typeof raw.done === "object") for (var t in raw.done) if (raw.done[t]) st.done[t] = 1;
+  if (raw.low && typeof raw.low === "object") for (var lk in raw.low) {
+    var lo = _tbNum(raw.low[lk], -1); if (lo >= 0 && lo < TT_BUILDER_MAX_RUNG) st.low[lk] = Math.floor(lo);
+  }
+  if (raw.given && typeof raw.given === "object") for (var gt in raw.given) {
+    var gv = Math.floor(_tbNum(raw.given[gt], 0)); if (gv > 0) st.given[gt] = Math.min(gv, TT_BUILDER_TIER_RUNGS.length);
+  }
+  st.pendQ = Math.max(0, Math.floor(_tbNum(raw.pendQ, 0)));
+  if (st.v < TT_BUILDER_VERSION) {                    // kept only until the one silent catch-up
+    st.done = {}; if (raw.done && typeof raw.done === "object") for (var t in raw.done) if (raw.done[t]) st.done[t] = 1;
+  }
   (Array.isArray(raw.placed) ? raw.placed : []).forEach(function (it) {
     if (!it || !TT_BUILDER_DEFS[it.type]) return;
     st.placed.push({ id: Math.floor(_tbNum(it.id, 0)), type: it.type, x: _tbNum(it.x, 0), y: _tbNum(it.y, 0), on: typeof it.on === "number" ? it.on : null });
@@ -6569,39 +6611,89 @@ function ttBuilderPlaceStructure(st, T) {
   st.placed.push({ id: st.nextId++, type: "st" + T, x: s.anchor[0], y: s.anchor[1], on: null });
   return true;
 }
-// Pay every promotion since the last reconcile and complete any table that is now ready.
+function ttBuilderHas(st, type) { return st.placed.concat(st.tray).some(function (i) { return i.type === type; }); }
+// How many ladder steps these facts (one table's live facts) have reached: 0..3.
+function ttBuilderTier(mine) {
+  var n = 0, all = function (rung) { return mine.every(function (f) { return (f.confirmedRung || 0) >= rung; }); };
+  while (mine.length && n < TT_BUILDER_TIER_RUNGS.length && all(TT_BUILDER_TIER_RUNGS[n])) n++;
+  return n;
+}
+// Hand over step n of table T. Returns {pearls, event} (event null when silent). Silent = the catch-up of a
+// reef saved before the ladder: an item it already holds (an old gift) is not given a second time.
+function ttBuilderGive(st, T, n, silent) {
+  var ev = { type: "reward", table: T, tier: n }, tp;
+  if (n === 3) { ev.reward = "pearls"; ev.name = TT_BUILDER_R8_PEARLS + " pearls"; return { pearls: TT_BUILDER_R8_PEARLS, event: silent ? null : ev }; }
+  if (n === 1 && TT_BUILDER_STRUCTS[T]) {
+    ttBuilderPlaceStructure(st, T);
+    ev.reward = "struct"; ev.name = TT_BUILDER_STRUCTS[T].name;
+  } else {
+    tp = n === 1 ? TT_BUILDER_PARTS[T] : TT_BUILDER_PETS[T];
+    if (!(silent && ttBuilderHas(st, tp.id))) st.tray.push({ id: st.nextId++, type: tp.id });
+    ev.reward = "tray"; ev.name = tp.name; ev.visitor = n === 2 && !tp.special;
+  }
+  if (!silent) st.edit = true;                       // a new piece opens rearranging until the child presses Done
+  return { pearls: 0, event: silent ? null : ev };
+}
+// Pay every promotion and recovery since the last reconcile, and every ladder step now reached.
 //   facts: [{key,a,b,confirmedRung}] from the engine's read accessor (tt_getFactStates) — only the
 //   LIVE facts, so a range-10 player's tables never wait on ×11 / ×12.
-// Mutates st. Returns {events, gain}: events are {type:"promoted",key,from,to} and
-//   {type:"tableComplete",table,reward:"struct"|"gift",name}.
+// Mutates st. Returns {events, gain}: events are {type:"promoted"|"recovered",key,from,to} and
+//   {type:"reward",table,tier,reward:"struct"|"tray"|"pearls",name,visitor}.
 function ttBuilderReconcile(st, facts) {
-  var events = [], gain = 0;
+  var events = [], gain = 0, silent = st.v < TT_BUILDER_VERSION;
   facts.forEach(function (f) {
-    var r = Math.min(f.confirmedRung || 0, TT_BUILDER_MAX_RUNG), p = st.paid[f.key] || 0;
+    var r = Math.min(f.confirmedRung || 0, TT_BUILDER_MAX_RUNG), p = st.paid[f.key] || 0, lo = st.low[f.key];
+    if (r < p) { st.low[f.key] = lo === undefined ? r : Math.min(lo, r); return; }
+    if (lo !== undefined) {                          // back at the paid rung after a drop
+      gain += ttBuilderPearlsFor(lo, p); delete st.low[f.key];
+      events.push({ type: "recovered", key: f.key, from: lo, to: p });
+    }
     if (r > p) {
       gain += ttBuilderPearlsFor(p, r); st.paid[f.key] = r;
       events.push({ type: "promoted", key: f.key, from: p, to: r });
     }
   });
-  st.pearls += gain;
   for (var T = 2; T <= 12; T++) {
-    if (st.done[T]) continue;
     var mine = facts.filter(function (f) { return f.a === T || f.b === T; });
-    if (!mine.length || !mine.every(function (f) { return (f.confirmedRung || 0) >= TT_BUILDER_MASTERED_RUNG; })) continue;
-    st.done[T] = 1;
-    if (TT_BUILDER_STRUCTS[T]) {
-      ttBuilderPlaceStructure(st, T);
-      events.push({ type: "tableComplete", table: T, reward: "struct", name: TT_BUILDER_STRUCTS[T].name });
-    } else if (TT_BUILDER_GIFTS[T]) {
-      st.tray.push({ id: st.nextId++, type: TT_BUILDER_GIFTS[T].id });
-      events.push({ type: "tableComplete", table: T, reward: "gift", name: TT_BUILDER_GIFTS[T].name });
+    var tier = ttBuilderTier(mine), had = st.given[T] || 0;
+    if (silent && st.done && st.done[T]) tier = Math.max(tier, 2);   // completed under the old rule: R6 was reached
+    for (var n = had + 1; n <= tier; n++) {
+      var res = ttBuilderGive(st, T, n, silent);
+      gain += res.pearls; st.given[T] = n;
+      if (res.event) events.push(res.event);
     }
-    st.edit = true;                                  // a new piece opens rearranging until the child presses Done
   }
+  st.pearls += gain;
+  if (silent) { st.v = TT_BUILDER_VERSION; delete st.done; }
   return { events: events, gain: gain };
 }
-function ttBuilderMessage(ev) {                      // child-facing line for a tableComplete event
-  return "Table " + ev.table + " complete — " + (ev.reward === "struct" ? "the " + ev.name + " is built." : "a " + ev.name.toLowerCase() + " arrives.");
+function ttBuilderArticle(name) { return (/^[aeiou]/.test(name) ? "an " : "a ") + name; }
+function ttBuilderMessage(ev) {                      // child-facing line for a reward event
+  var what = ev.reward === "pearls" ? ev.name : ttBuilderArticle(ev.name) + (ev.visitor ? " visitor to your reef" : "");
+  var said = ev.tier === 1 ? "Your " + ev.table + "s are making good progress"
+    : ev.tier === 2 ? "Good progress multiplying your " + ev.table + "s"
+    : "Good effort with dividing your " + ev.table + "s";
+  return said + " — you earned " + what + ".";
+}
+// --- T22: bonus pearls for questions answered ---------------------------------------
+function ttBuilderBonusLine(q, n, inReef) {
+  var pearls = n + " bonus pearl" + (n === 1 ? "" : "s");
+  return inReef ? "You answered " + q + " questions, you earnt " + pearls + " this session."
+    : "Since your last visit you answered " + q + " questions — you earnt " + pearls + ".";
+}
+// A session closed: `asked` questions. Leaving the Reef pays now and returns the line to show (null under 10);
+// any other game only adds to pendQ, silently.
+function ttBuilderCreditSession(st, asked, inReef) {
+  if (!inReef) { st.pendQ += asked; return null; }
+  var n = Math.floor(asked / 10);
+  st.pearls += n;
+  return n ? ttBuilderBonusLine(asked, n, true) : null;
+}
+// The Reef opens: pay what other games held and clear the tally (a remainder under 10 is not carried).
+function ttBuilderCollectPending(st) {
+  var q = st.pendQ, n = Math.floor(q / 10);
+  st.pendQ = 0; st.pearls += n;
+  return { pearls: n, line: n ? ttBuilderBonusLine(q, n, false) : null };
 }
 // The 8 pips for a fact at confirmed rung r: tile rungs 1–5 pale, keypad-recall rungs 6–8 gold ("k").
 function ttBuilderPips(r) {
@@ -6733,6 +6825,35 @@ var TT_BD_DRAW = (function () {
       c.beginPath(); c.ellipse(4, 6, 30, 9, 0, 0, Math.PI); c.fillStyle = "#cfe0f2"; c.fill();
       poly(c, [-30, 0, -46, -14 + w, -40, -2, -46, 12 + w], "#4a6a98"); poly(c, [-2, 12, 8, 24, 14, 12], "#4a6a98");
       eye(c, 22, -4, 2.6); c.beginPath(); c.arc(24, 5, 6, .2, 1.2); c.strokeStyle = "#2a3a58"; c.lineWidth = 1.2; c.stroke(); },
+    // T20: the ×8 and ×6 pets
+    seal: function (c, t) { var w = Math.sin(t * 3) * 2;
+      poly(c, [-22, 2, -36, -6 + w, -32, 2, -36, 10 + w], "#7d8896");
+      el(c, -2, 1, 24, 12, "#98a4b2"); el(c, 0, 6, 17, 6, "#d6dde4"); el(c, 21, -3, 12, 10, "#a6b1be");
+      el(c, 4, 12, 9, 3.5, "#7d8896", .5 + Math.sin(t * 2) * .2);
+      el(c, 31, -1, 3, 2.2, "#3a3f4a"); eye(c, 24, -7, 3.2); eye(c, 15, -7, 3.2);
+      line(c, [30, 2, 38, 0], "#eef3f7", 1); line(c, [30, 3, 38, 5], "#eef3f7", 1); },
+    dolphin: function (c, t) { var w = Math.sin(t * 5) * 3;
+      poly(c, [-3, -11, -12, -23, 8, -12], "#4a7ea8");
+      poly(c, [-29, -2, -41, -11 + w, -36, 0, -41, 9 + w], "#4a7ea8");
+      c.beginPath(); c.moveTo(-32, 0); c.bezierCurveTo(-14, -16, 14, -16, 25, -4); c.lineTo(38, -1); c.lineTo(25, 3); c.bezierCurveTo(12, 13, -14, 11, -32, 0); c.closePath(); c.fillStyle = "#6aa2cc"; c.fill();
+      c.beginPath(); c.moveTo(-18, 3); c.bezierCurveTo(-4, 11, 14, 10, 26, 2); c.bezierCurveTo(12, 5, -6, 6, -18, 3); c.closePath(); c.fillStyle = "#dceaf4"; c.fill();
+      poly(c, [2, 6, -8, 16, 8, 8], "#4a7ea8"); eye(c, 17, -5, 2.4); },
+    // T20: g2's structures: the same rock as the big structures, in small building shapes (origin = centre; kind "part")
+    ledge: function (c) { c.beginPath(); c.moveTo(-30, -9); c.lineTo(30, -9); c.bezierCurveTo(33, -3, 26, 3, 16, 5); c.bezierCurveTo(4, 12, -12, 13, -24, 6); c.bezierCurveTo(-30, 3, -33, -4, -30, -9); c.closePath();
+      c.fillStyle = ttBdRockFill(c, -9, 13); c.fill(); c.strokeStyle = "#1c2442"; c.lineWidth = 2; c.stroke();
+      line(c, [-14, -2, -8, 5], TT_BD_RK.c, 1.5); line(c, [12, -3, 8, 3], TT_BD_RK.c, 1.5); el(c, 18, -10, 6, 2.5, "#2f8a5a"); },
+    pillar: function (c) { c.beginPath(); c.moveTo(-15, 26); c.lineTo(-10, 18); c.lineTo(-9, -17); c.lineTo(-14, -25); c.lineTo(14, -25); c.lineTo(9, -17); c.lineTo(10, 18); c.lineTo(15, 26); c.closePath();
+      c.fillStyle = ttBdRockFill(c, -25, 26); c.fill(); c.strokeStyle = "#1c2442"; c.lineWidth = 2; c.stroke();
+      line(c, [-3, -13, -5, 2, -2, 14], TT_BD_RK.c, 1.5); line(c, [4, -8, 3, 6], TT_BD_RK.c, 1.5); },
+    crystals: function (c, t) { var g = (Math.sin(t * 2) + 1) / 2;
+      var gr = c.createRadialGradient(0, -2, 1, 0, -2, 28); gr.addColorStop(0, "rgba(150,235,255," + (.25 + g * .3) + ")"); gr.addColorStop(1, "rgba(150,235,255,0)"); c.fillStyle = gr; c.beginPath(); c.arc(0, -2, 28, 0, TAU); c.fill();
+      [[-13, 14, -18, -4, -7, 14, "#58a8e0"], [11, 14, 18, -8, 7, 14, "#58a8e0"], [-7, 14, -8, -14, 1, 14, "#8ad8f4"], [0, 14, 4, -22, 9, 14, "#b6ecfa"]].forEach(function (k) {
+        poly(c, [k[0], k[1], k[2] - 3, k[3] + 5, k[2], k[3], k[2] + 3, k[3] + 5, k[4], k[5]], k[6]); });
+      line(c, [3, -14, 5, 6], "#eafaff", 1.5); line(c, [-8, -7, -6, 8], "#eafaff", 1.2); el(c, 0, 14, 17, 3, "#3d4a78"); },
+    mussels: function (c) { [[-14, 8, -.5], [13, 9, .55], [-3, 11, .1], [-9, -3, -.3], [7, -2, .35], [-1, -13, 0]].forEach(function (m) {
+        c.save(); c.translate(m[0], m[1]); c.rotate(m[2]);
+        c.beginPath(); c.moveTo(0, -11); c.bezierCurveTo(9, -7, 9, 7, 0, 11); c.bezierCurveTo(-9, 7, -9, -7, 0, -11); c.closePath(); c.fillStyle = "#26304e"; c.fill(); c.strokeStyle = "#7a8cc8"; c.lineWidth = 1.2; c.stroke();
+        line(c, [0, -9, 0, 9], "#0e1428", 1.2); line(c, [3.5, -5, 4.5, 3], "#55679e", 1.2); c.restore(); }); },
   };
   return D;
 })();
@@ -6742,9 +6863,10 @@ var TT_BD_MOTION = {
   fish: { range: 46, speed: .45 }, clown: { range: 38, speed: .6 }, crab: { range: 10, speed: .8, noflip: 1 }, puffer: { range: 30, speed: .35 },
   seahorse: { range: 14, speed: .3, noflip: 1, bob: 8 }, jelly: { range: 20, speed: .25, noflip: 1, bob: 12 }, turtle: { range: 70, speed: .18 },
   manta: { range: 80, speed: .15, bob: 10 }, whale: { range: 90, speed: .1, bob: 6 },
+  seal: { range: 60, speed: .3, bob: 8 }, dolphin: { range: 85, speed: .3, bob: 12 },
 };
 
-// --- structures (tables 2–5): absolute scene coordinates, drawn shifted to wherever the child puts them ---
+// --- structures (tables 2–5, 8, 10, 11): absolute scene coordinates, drawn shifted to wherever the child puts them ---
 var TT_BD_RK = { a: "#56649a", b: "#3d4a78", c: "#262f52" };
 function ttBdRockFill(c, y0, y1) { var g = c.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, TT_BD_RK.a); g.addColorStop(.35, TT_BD_RK.b); g.addColorStop(1, TT_BD_RK.c); return g; }
 function ttBdBump(c, x, y, col) { ttBdEl(c, x, y - 4, 5, 7, col); ttBdEl(c, x - 5, y - 1, 3, 5, col, -.3); ttBdEl(c, x + 5, y - 1, 3, 5, col, .3); }
@@ -6780,10 +6902,30 @@ var TT_BD_STRUCT = (function () {
         gr.addColorStop(0, "rgba(255,245,170,.95)"); gr.addColorStop(1, "rgba(255,245,170,0)");
         c.fillStyle = gr; c.beginPath(); c.arc(190, 92, 26 * p, 0, TAU); c.fill(); el(c, 190, 94, 5, 5, "#fff6b0");
         line(c, [184, 150, 188, 170, 184, 190], RK.c, 1.5); line(c, [198, 140, 196, 164, 200, 188], RK.c, 1.5); } },
+    // T20 ×10 big: an umbrella of rock on a stem, standing on the horizon
+    10: { y0: 100, y1: FT + 6,
+      path: function (c) { var b = FT + 6; c.beginPath(); c.moveTo(50, b); c.lineTo(56, 160); c.bezierCurveTo(36, 162, 14, 160, 10, 150); c.bezierCurveTo(14, 118, 44, 100, 70, 100);
+        c.bezierCurveTo(96, 100, 126, 118, 130, 150); c.bezierCurveTo(126, 160, 104, 162, 84, 160); c.lineTo(90, b); c.closePath(); },
+      decor: function (c, t) { bump(c, 44, 112, "#cc4488"); bump(c, 74, 104, "#dd6622"); bump(c, 102, 114, "#cc4488");
+        [[30, 158], [108, 158]].forEach(function (p, i) { var sw = Math.sin(t * 1.6 + i) * 3; c.beginPath(); c.moveTo(p[0], p[1]); c.quadraticCurveTo(p[0] + sw, p[1] + 9, p[0] + sw * 1.5, p[1] + 20); c.strokeStyle = "#00aa66"; c.lineWidth = 3; c.lineCap = "round"; c.stroke(); });
+        line(c, [64, 168, 68, 190, 63, 212], RK.c, 1.5); line(c, [40, 126, 56, 140, 50, 152], RK.c, 1.5); line(c, [100, 128, 92, 142, 98, 152], RK.c, 1.5); } },
+    // T20 ×8 medium: a T of rock: a slab on one stem
+    8: { y0: 250, y1: H - 20,
+      path: function (c) { var b = H - 20; c.beginPath(); c.moveTo(234, b); c.lineTo(240, 272); c.lineTo(200, 270); c.bezierCurveTo(192, 268, 190, 256, 198, 252); c.lineTo(302, 252);
+        c.bezierCurveTo(310, 256, 308, 268, 300, 270); c.lineTo(260, 272); c.lineTo(266, b); c.closePath(); },
+      decor: function (c, t) { bump(c, 222, 252, "#ff9955"); bump(c, 276, 252, "#ff66aa");
+        line(c, [246, 280, 250, 304, 246, 328], RK.c, 1.5); line(c, [212, 258, 218, 266], RK.c, 1.5); line(c, [288, 257, 282, 265], RK.c, 1.5); } },
+    // T20 ×11 medium: a rock with a round window right through it (the hole is wound the other way)
+    11: { y0: 240, y1: H - 10,
+      path: function (c) { var b = H - 10; c.beginPath(); c.moveTo(322, b); c.bezierCurveTo(318, 300, 326, 252, 365, 240); c.bezierCurveTo(404, 252, 412, 300, 408, b); c.closePath();
+        c.moveTo(385, 298); c.arc(365, 298, 20, 0, TAU, true); c.closePath(); },
+      decor: function (c, t) { c.beginPath(); c.arc(365, 298, 20, 0, TAU); c.strokeStyle = RK.c; c.lineWidth = 3; c.stroke();
+        bump(c, 352, 250, "#cc4488"); bump(c, 380, 252, "#dd6622");
+        line(c, [332, 316, 338, 332, 334, 346], RK.c, 1.5); line(c, [398, 320, 392, 334, 396, 346], RK.c, 1.5); } },
   };
 })();
 // [left, right, top, bottom] relative to the anchor — only to keep a dragged structure on screen
-var TT_BD_BB = { 2: [-80, 82, -120, 0], 3: [-118, 40, -230, 0], 4: [-54, 54, -98, 0], 5: [-26, 28, -125, 0] };
+var TT_BD_BB = { 2: [-80, 82, -120, 0], 3: [-118, 40, -230, 0], 4: [-54, 54, -98, 0], 5: [-26, 28, -125, 0], 10: [-60, 60, -122, 0], 8: [-60, 60, -90, 0], 11: [-46, 46, -112, 0] };
 
 // ============================================================================
 // the REEF BUILDER — ONE screen (Kath h21): the reef sits ABOVE the ordinary Quiz play elements
@@ -6902,7 +7044,7 @@ function ttMakeBuilder(el) {
   function clampFor(it, p) {
     var k = kindOf(it);
     if (k === "big") { var b = TT_BD_BB[def(it.type).table]; return { x: Math.max(-b[0], Math.min(W - b[1], p.x)), y: Math.max(Math.max(FT - 8, -b[2]), Math.min(H, p.y)) }; }
-    return { x: Math.max(14, Math.min(W - 14, p.x)), y: k === "floor" ? Math.max(FT + 4, Math.min(H - 4, p.y)) : Math.max(24, Math.min(FT + 50, p.y)) };
+    return { x: Math.max(14, Math.min(W - 14, p.x)), y: k === "floor" ? Math.max(FT + 4, Math.min(H - 4, p.y)) : k === "part" ? Math.max(14, Math.min(H - 14, p.y)) : Math.max(24, Math.min(FT + 50, p.y)) };
   }
   function hit(p, t, only) {
     var arr = S.placed.filter(function (i) { return !only || i.id === only; }).sort(function (a, b) { return b.y - a.y; }), i, it;
@@ -6928,8 +7070,15 @@ function ttMakeBuilder(el) {
       if (!best || Math.abs(py - sy) < Math.abs(py - best.y)) best = { y: sy, on: b.id }; });
     return best;
   }
+  // the structure under this point, if any (a part on it then moves with it)
+  function structAt(p) {
+    var bs = S.placed.filter(function (b) { return kindOf(b) === "big"; }).sort(function (a, b) { return b.y - a.y; });
+    for (var i = 0; i < bs.length; i++) { g.save(); toPath(); structPath(bs[i]); var inside = g.isPointInPath((p.x + OX) * SC, (p.y + E) * SC); g.restore(); if (inside) return bs[i]; }
+    return null;
+  }
   function placeAt(it, p) {
     var x = Math.max(14, Math.min(W - 14, p.x));
+    if (kindOf(it) === "part") { var q = clampFor(it, p), st = structAt(q); return { x: q.x, y: q.y, on: st ? st.id : null }; }
     if (kindOf(it) === "floor") { var s = supportFor(x, p.y); if (s) return { x: x, y: s.y, on: s.on }; return { x: x, y: Math.max(FT + 4, Math.min(H - 4, p.y)), on: null }; }
     return { x: x, y: Math.max(24, Math.min(FT + 50, p.y)), on: null };
   }
@@ -7006,7 +7155,9 @@ function ttMakeBuilder(el) {
     if (shopOv && shopOv.style.display !== "none") renderShop();
   }
   function showShop(on) { if (!shopOv) return; if (on) renderShop(); shopOv.style.display = on ? "" : "none"; shopBtn.classList.toggle("sel", on); }
-  function renderMsgs() { noteEl.innerHTML = ""; msgs.forEach(function (m) { noteEl.appendChild(div("", m)); }); }
+  // One line at a time (the note holds about two lines of text): several rewards at once take turns.
+  function renderMsgs() { noteEl.innerHTML = ""; if (msgs.length) noteEl.appendChild(div("", msgs[0])); }
+  function takeReward(e) { msgs.push(ttBuilderMessage(e)); if (e.reward === "struct") riseT[e.table] = performance.now(); }
   // The current fact's 8 pips: lit = the engine's CONFIRMED rung (tile rungs pale, keypad R6–R8 gold).
   function rungOf(key) {
     var fs = ctx.factStates();
@@ -7044,7 +7195,7 @@ function ttMakeBuilder(el) {
     if (shopOv && shopOv.parentNode) shopOv.parentNode.removeChild(shopOv);
     shopOv = div("tt-overlay tt-bd-shop"); shopOv.style.display = "none";
     var card = div("tt-gate-card tt-bd-shopcard"); shelfEl = div("tt-bd-shelf"); card.appendChild(shelfEl);
-    card.appendChild(div("tt-bd-shopnote", "Pearls come from moving a fact up a step, not from every answer. Prices never change. Master a whole table for something big: ×2 cave · ×3 overhang · ×4 arch · ×5 lantern rock · ×6 and up a creature."));
+    card.appendChild(div("tt-bd-shopnote", "Pearls come from moving a fact up a step, not from every answer. Prices never change. Every table earns its own rewards as you learn it: a piece of the reef, then a visitor, then pearls."));
     card.appendChild(btn("tt-subtle", "Close", function () { showShop(false); }));
     shopOv.appendChild(card); shopOv.addEventListener("click", function (e) { if (e.target === shopOv) showShop(false); });
     (el.closest("#app") || document.body).appendChild(shopOv);
@@ -7056,18 +7207,16 @@ function ttMakeBuilder(el) {
     el.style.display = ""; el.parentNode.classList.add("tt-bd-on"); sizeCanvas();
     S = ttBuilderNormalize(ctx.load());
     var res = ttBuilderReconcile(S, ctx.factStates());       // catch up on everything the engine has recorded
+    var pend = ttBuilderCollectPending(S);                   // T22: what other games earned since the last visit
     msgs = []; msgAge = 0; factKey = null; popRung = 0;
-    res.events.forEach(function (e) {
-      if (e.type !== "tableComplete") return;
-      msgs.push(ttBuilderMessage(e));
-      if (e.reward === "struct") riseT[e.table] = performance.now();
-    });
+    if (pend.line) msgs.push(pend.line);
+    res.events.forEach(function (e) { if (e.type === "reward") takeReward(e); });
     if (res.gain || msgs.length) octoUntil = performance.now() + 1500;
-    Object.keys(TT_BUILDER_STRUCTS).forEach(function (t) { if (S.done[t]) ttBuilderPlaceStructure(S, +t); });   // heal a lost structure
+    Object.keys(TT_BUILDER_STRUCTS).forEach(function (t) { if (S.given[t]) ttBuilderPlaceStructure(S, +t); });   // heal a lost structure
     save();
     placing = null; drag = null; pointer = null; bubbles = []; bubAcc = 0; bubLast = 0;
     for (var i = 0; i < 260; i++) bubTick();                  // warm-up so the reef starts populated
-    renderPearls(res.gain > 0); renderTray(); renderEdit(); renderMsgs(); renderPips();
+    renderPearls(res.gain + pend.pearls > 0); renderTray(); renderEdit(); renderMsgs(); renderPips();
     sizeCanvas(); running = true; raf = requestAnimationFrame(frame);
   }
   function stop() {
@@ -7080,17 +7229,17 @@ function ttMakeBuilder(el) {
   function setFact(key) {
     if (!ctx || !S) return;
     factKey = key; popRung = 0; renderPips();
-    if (msgs.length && ++msgAge >= 3) { msgs = []; msgAge = 0; renderMsgs(); }   // a table-complete line stays for a couple of questions
+    if (msgs.length && ++msgAge >= 3) { msgs.shift(); msgAge = 0; renderMsgs(); }   // a reward line stays for a couple of questions
   }
   function afterAnswer(key) {
     if (!ctx || !S) return;
     var res = ttBuilderReconcile(S, ctx.factStates());
     save();
     res.events.forEach(function (e) {
-      if (e.type === "promoted" && e.key === key) popRung = e.to;
-      if (e.type === "tableComplete") { msgs.push(ttBuilderMessage(e)); msgAge = 0; if (e.reward === "struct") riseT[e.table] = performance.now(); }
+      if ((e.type === "promoted" || e.type === "recovered") && e.key === key) popRung = e.to;
+      if (e.type === "reward") { if (!msgs.length) msgAge = 0; takeReward(e); }
     });
-    if (res.gain || res.events.some(function (e) { return e.type === "tableComplete"; })) octoUntil = performance.now() + 1500;
+    if (res.gain || res.events.some(function (e) { return e.type === "reward"; })) octoUntil = performance.now() + 1500;
     renderPips(); renderPearls(res.gain > 0); renderTray(); renderEdit(); renderMsgs();
   }
   return { start: start, stop: stop, setFact: setFact, afterAnswer: afterAnswer };
@@ -7126,6 +7275,7 @@ function ttMakeBuilder(el) {
 //   opts.pop                   Game 2 skin controller (ttMakePop) — start/stop
 //   opts.builder / opts.builderStore   Game 5 Reef Builder: the player (ttMakeBuilder — fills the dock at the
 //                              top of the play screen) and the per-player {load, save} record
+//   opts.onReefBonus(line)     T22: the line to show on the Games screen after leaving the Reef
 //   opts.profile {age}         single hardcoded child for now (S0 create = later)
 //   opts.rng, opts.onState(eng)
 // Returns { goWho, goSelect, goPlay, showMap, back, engine } — the host wires its buttons.
@@ -7175,6 +7325,7 @@ function ttStartFlow(opts) {
   var renderCount = 0;                  // test seam: number of questions rendered (see qCount in the API)
   var HELP_RT = 999999;                // "help me out" reports a wrong answer with a slow rt (not fluent)
   var sessionLive = false, screen = null;
+  var sessionAnswered = 0;            // T22: answers recorded this session (the engine's `asked` also counts one left on screen)
   var builderMode = false;            // h21: Game 5 Reef Builder — the play screen with the reef dock above it (one screen)
 
   // back target per screen; who (S0) is the root → no back. (S0 create-player = later.)
@@ -7298,6 +7449,7 @@ function ttStartFlow(opts) {
   function openSession() {
     if (sessionLive) return;
     sessionLive = true;
+    sessionAnswered = 0;
     applyScope();                        // D5: set sessionCtx.mode from the adult scope control
     sessionCtx.nowTs = Date.now();
     tt_startSession(eng, sessionCtx);
@@ -7315,6 +7467,13 @@ function ttStartFlow(opts) {
     persist();
     sessionLive = false;
     current = null;
+    // T22: every game with a session credits the Reef (Practice opens none). Reef: paid + told now; others: held for the next visit.
+    if (opts.builderStore && sessionAnswered) {
+      var reef = ttBuilderNormalize(opts.builderStore.load());
+      var line = ttBuilderCreditSession(reef, sessionAnswered, builderMode);
+      opts.builderStore.save(reef);
+      if (line && typeof opts.onReefBonus === "function") opts.onReefBonus(line);
+    }
     return summary;
   }
 
@@ -7430,6 +7589,7 @@ function ttStartFlow(opts) {
   // Correct: show "correct" and keep the answer + message on screen for 1s, then advance (§ user h10).
   function correctThenAdvance() { qPanel.mark("correct"); fbPanel.show({ kind: "correct", text: "correct" }); setTimeout(nextQuestion, 1000); }
 
+  function recordToEngine(d, correct, rt) { sessionAnswered++; tt_recordAnswer(eng, d, correct, rt, profile.age); }   // every answer in every game passes here, once per question
   function onAnswer(val) {
     if (!current || screen !== "play") return;
     var correct = val === current.correctAnswer;
@@ -7446,7 +7606,7 @@ function ttStartFlow(opts) {
     }
     submitLock = true;
     sessionCtx.nowTs = Date.now();
-    tt_recordAnswer(eng, current, correct, rt, profile.age);
+    recordToEngine(current, correct, rt);
     persist();
     if (builderMode && opts.builder) opts.builder.afterAnswer(current.factKey);   // pay what the engine now says was earned
     if (!correct && opts.scaffold) { enterCorrective(current, true); return; }   // §7: wrong → caption + copy (array on request)
@@ -7458,7 +7618,7 @@ function ttStartFlow(opts) {
   function helpMeOut() {
     if (!current || correctiveMode || submitLock || screen !== "play" || current.revealAnswer) return;
     sessionCtx.nowTs = Date.now();
-    tt_recordAnswer(eng, current, false, HELP_RT, profile.age);
+    recordToEngine(current, false, HELP_RT);
     persist();
     if (opts.scaffold) enterCorrective(current, false);   // asked for help → give the array at once
     else { fbPanel.show({ kind: "corrective", text: ttSolvedText(current) }); setTimeout(nextQuestion, 900); }
@@ -7513,7 +7673,7 @@ function ttStartFlow(opts) {
   function recordServed(d, correct) {
     sessionCtx.nowTs = Date.now();
     var heldReveal = eng.pendingReveal;
-    tt_recordAnswer(eng, d, correct, TT_PAIRS_RT, profile.age);
+    recordToEngine(d, correct, TT_PAIRS_RT);
     eng.pendingReveal = heldReveal;
     persist();
   }
@@ -7764,7 +7924,8 @@ if (typeof module !== "undefined" && module.exports) {
     profile: { age: 8 },
     onState: function (e) { if (currentPlayerId) { try { localStorage.setItem("tt_eng_" + currentPlayerId, tt_serialize(e)); } catch (_) {} } },
     // h19: the one-time 10 → 12 upgrade fired on leaving a game — tell the child on the Games screen.
-    onRangeUp: function () { ttEl("ttGamesMsg").textContent = "The 11 and 12 times tables are now in your games."; },
+    onReefBonus: function (line) { ttEl("ttGamesMsg").textContent = line; },
+    onRangeUp: function () { var m = ttEl("ttGamesMsg"); m.textContent = (m.textContent ? m.textContent + " " : "") + "The 11 and 12 times tables are now in your games."; },
     onChildPick: function (pick) { if (currentPlayerId) { try { localStorage.setItem("tt_childpick_" + currentPlayerId, JSON.stringify(pick)); } catch (_) {} } },
     onScope: function (sc) { if (currentPlayerId) { try { localStorage.setItem("tt_scope_" + currentPlayerId, JSON.stringify(sc)); } catch (_) {} } }
   });
